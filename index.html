@@ -86,6 +86,15 @@
             -webkit-backdrop-filter: blur(4px) saturate(160%);
             backdrop-filter: blur(4px) saturate(160%);
             border-bottom: 0.25px solid var(--black);
+            /* Served over the network the glass was sampling the wrong layer:
+               the text underneath stayed sharp with a blurred ghost around it,
+               which never happened opening the file locally. Chromium decides
+               what a backdrop-filter samples from how it has split the page
+               into composited layers, and that split changes with the order in
+               which the seven videos and the images arrive. Declaring the
+               layer up front settles the question before the scroll starts. */
+            will-change: backdrop-filter;
+            transform: translateZ(0);
         }
         /* The columns are butted against each other (their edges come from the
            navbar), so the breathing room is padding inside each one. */
@@ -503,26 +512,8 @@
     .tp-sign p { margin: 0; }
     .tp-sign .tp-sign-name { margin-top: 6px; }
 
-    /* The mark is pulled up onto the name: the two overlap the way a signature
-       overlaps the typed name under it. The id in the selector is not
-       decoration — style.css sets #content img to width 100%, and a class
-       alone would lose to it. */
-    #case-study .tp-sign-mark {
-        display: inline-block;
-        width: 200px;
-        height: auto;
-        margin: -37px 0 0 0;
-        position: relative;
-        /* Nudged past the right edge of the module, the way a hand signs
-           slightly outside the ruled area. */
-        left: 65px;
-        z-index: 1;
-        mix-blend-mode: multiply;
-    }
-
     @media screen and (max-width: 800px) {
         .tp-sign { margin-top: 80px; }
-        #case-study .tp-sign-mark { width: 160px; margin-top: -18px; }
     }
 
     /* A note closing a text block: same measure as the paragraph above it, one
@@ -914,7 +905,6 @@
         <div class="tp-sign">
             <p>Thank you for your attention.</p>
             <p class="tp-sign-name">Giovanni Coroneo</p>
-            <img class="tp-sign-mark" src="assets/images/signature.webp" alt="Signature of Giovanni Coroneo">
         </div>
 
         </div><!-- /#case-study -->
