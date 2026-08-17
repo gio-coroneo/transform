@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+    <title>Two projects — Giovanni Coroneo</title>
+
+    <!-- The decision is taken before the stylesheet paints anything: if the
+         opening is going to animate, the page must never show it composed,
+         not even for a frame. -->
+    <script>
+    (function () {
+        try {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            if (sessionStorage.getItem('tp-opening-seen')) return;
+        } catch (e) { return; }
+        document.documentElement.className += ' tp-anim';
+    })();
+    </script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+    /* ------------------------------------------------------------------
+       Additions for the two-project page. Nothing here overrides the
+       existing system: it only adds what a two-project long scroll needs.
+       ------------------------------------------------------------------ */
+
+    /* The sidebar is gone and the module is centred on the page.
+       Width stays 80vw and the horizontal padding stays 55px in total
+       (27.5 + 27.5 instead of 35 + 20), so the inner column keeps exactly
+       the width it had — only its position on the page changes.
+       Desktop only: below 800px style.css puts #content back in flow. */
+    @media screen and (min-width: 801px) {
+        #content {
+            /* 10vw would centre the module; the 5px shift it to the left. */
+            left: calc(10vw - 5px);
+            right: auto;
+            padding: 20px 27.5px;
+        }
+        /* The navbar follows the module instead of the viewport edges. */
+        #navbar {
+            width: calc(80vw - 55px);
+            padding-right: 0;
+        }
+
+        /* The project head — title, metadata and rule — is one sticky block.
+           It keeps the width of the module; the white and the rule that run
+           from edge to edge are painted by a layer behind it, which is cheaper
+           for the browser than a sticky box wider than the page (that one made
+           the page blink during fast scrolling). It parks under the fixed
+           navbar: the 34px of top padding keep the title clear of it, and the
+           lower z-index lets the navbar stay on top of the white. */
+        .tp-head {
+            position: sticky;
+            top: 0;
+            z-index: 90;
+            /* 34px clear the navbar, 15px more of white above the title. */
+            padding: 49px 0 12px 0;
+            /* How much the name shrinks when the head is reduced. The band the
+               glass keeps is measured on this value, so the two agree. */
+            --tp-scale: 0.62;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            column-gap: 20px;
+            row-gap: 0;
+        }
+        /* The glass and the rule. Its height shrinks by --tp-collapse, the
+           distance already scrolled past the head: the rule therefore comes up
+           with the page until it sits right under the name, and the glass keeps
+           exactly the band that is left. */
+        .tp-head::before {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            top: 0;
+            height: 100%;
+            /* #content starts at calc(10vw - 5px) and pads 27.5px on each side:
+               these are the distances from the module to the two page edges. */
+            left: calc(-10vw - 22.5px);
+            right: calc(-10vw - 32.5px);
+            /* Frosted glass: white over what passes underneath, which stays
+               visible as a blurred, slightly saturated ghost. */
+            background-color: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(4px) saturate(160%);
+            backdrop-filter: blur(4px) saturate(160%);
+            border-bottom: 0.25px solid var(--black);
+        }
+        /* The columns are butted against each other (their edges come from the
+           navbar), so the breathing room is padding inside each one. */
+        .tp-head > .tp-project-title {
+            grid-column: 1;
+            grid-row: 1;
+            margin-bottom: 0;
+            padding-right: 20px;
+            /* Scaled, not resized: a smaller font-size would change the height
+               of the head, and with it the position of everything below. The
+               anchor is the top of the line, so the name shrinks upwards, from
+               its own ascender, and the band the glass keeps shrinks with it. */
+            transform-origin: left top;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tp-head.is-reduced > .tp-project-title { transform: scale(var(--tp-scale, 0.62)); }
+        .tp-head > .tp-meta p { padding-right: 20px; }
+        /* Second line of the title: same register as the name, its own row. */
+        .tp-head > .tp-sub {
+            grid-column: 1;
+            grid-row: 2;
+            margin: 0;
+            padding-right: 20px;
+            font-family: var(--serif);
+            font-weight: 400;
+            font-size: 40px;
+            line-height: 45px;
+        }
+        /* The metadata span both rows, so the first row keeps being measured on
+           the name alone and the second line stays right underneath it. */
+        .tp-head > .tp-meta {
+            grid-column: 2 / 4;
+            grid-row: 1 / 3;
+            /* Two columns filled by column, not by row: Scope and Context
+               stack on the left, Exhibition and Traces on the right. */
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: auto auto;
+            grid-auto-flow: column;
+            margin-bottom: 0;
+            border-top: 0;
+            padding-top: 0;
+        }
+        /* A temporary reduction, not a removal, and it answers to the direction
+           of the scroll rather than to a position on the page: scrolling down
+           the parts rise, blur and fade; scrolling up — anywhere in the
+           project, not only next to the head — they come back down, sharp and
+           solid, exactly where they started. */
+        .tp-head > .tp-sub,
+        .tp-head > .tp-meta {
+            transform: translateY(0);
+            opacity: 1;
+            filter: blur(0);
+            /* The rise is short — 48px — precisely so that the parts stay on
+               screen while they dissolve: travelling the whole height of the
+               head took them off the top in a fraction of a second and the
+               blur had nothing left to happen on. The curve bolts and then
+               locks into place — the pull of a magnet, not a bounce. */
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.18s ease-out, filter 0.2s ease-out,
+                        clip-path 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                        -webkit-clip-path 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tp-head.is-reduced > .tp-sub,
+        .tp-head.is-reduced > .tp-meta {
+            transform: translateY(-48px);
+            opacity: 0;
+            filter: blur(12px);
+        }
+        /* Only the second line needs cutting: rising, it would otherwise cross
+           the name. The metadata rise into the empty band above them. */
+        .tp-head.is-reduced > .tp-sub {
+            -webkit-clip-path: inset(48px -50vw -300px -50vw);
+            clip-path: inset(48px -50vw -300px -50vw);
+        }
+        /* The glass and its rule close in on the name, and open again with it. */
+        .tp-head::before { transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .tp-head.is-reduced::before { height: var(--tp-kept, 106px); }
+        /* The head carries the rule, so the section has none of its own. */
+        .tp-project {
+            border-top: 0;
+            padding-top: 0;
+        }
+        /* The first block after the head keeps its distance from the rule. */
+        .tp-head + * { margin-top: 30px; }
+    }
+
+    /* Scroll anchoring off: when an image finishes loading the browser shifts
+       the scroll position to keep what you are looking at in place. During the
+       magnet's own animation the two corrections fight each other, and that is
+       what makes text and images twitch. */
+    html { overflow-anchor: none; }
+
+    /* Opening block — the framing the sidebar used to hold, moved above the
+       first project inside the same column, in the same typographic register. */
+    /* The opening holds the first screen on its own and is centred in the
+       viewport. #case-study starts 94px down and #content adds 20px of padding:
+       the negative margin cancels those 114px so the centring is on the screen,
+       not on what is left of it. The first project starts below the fold. */
+    .tp-opening {
+        min-height: 100vh;
+        /* -114px would centre it on the screen: 50px less push it that much lower. */
+        margin-top: -64px;
+        margin-bottom: 90px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    /* The opening title is the one place where the line must run straight:
+       it never wraps on its own, and the size is fitted to the column by JS
+       (see the bottom of the page) so the second line always fits. */
+    .tp-opening .case-study-title {
+        margin: 0 0 34px 0;
+        font-size: 60px;
+        line-height: 1.03;
+        white-space: nowrap;
+    }
+    /* Same measure as the body column of .case-study-text: that block is a
+       two-column grid with a 20px gap, so its text column is half the module
+       minus half the gap. The opening paragraphs keep exactly that line length. */
+    .tp-opening p { margin: 0 0 18px 0; max-width: calc(50% - 10px); }
+    .tp-opening p:last-child { margin-bottom: 0; }
+
+    /* ---- Opening animation ----------------------------------------------
+       Every character of the title is a span. The final glyph never leaves the
+       flow, so the length of the line is fixed from the first frame and the
+       size fitted by JS stays valid while the letters are still churning. The
+       random glyph is absolutely positioned on top of it and measures nothing. */
+    /* The letter that stands in for another is set in the flow, at its own
+       width: it pushes what follows exactly as a typesetter would. No
+       transition anywhere — the change of glyph must be a cut, not a fade. */
+    .tp-ch { transition: none; }
+
+    /* Not reached yet: it holds its place, invisible, so the line does not
+       grow character by character. */
+    .tp-ch.is-void { opacity: 0; }
+
+    /* Before the script runs the title must not appear whole for one frame. */
+    html.tp-anim .tp-opening .case-study-title { visibility: hidden; }
+
+    html.tp-anim .tp-opening p {
+        opacity: 0;
+        transform: translateY(18px);
+        filter: blur(9px);
+    }
+    html.tp-anim .tp-opening p {
+        transition: opacity 780ms cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 780ms cubic-bezier(0.16, 1, 0.3, 1),
+                    filter 780ms cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform, filter;
+    }
+    html.tp-anim .tp-opening p.is-in {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+
+    /* Whoever asks for less movement gets the page already composed. */
+    @media (prefers-reduced-motion: reduce) {
+        html.tp-anim .tp-opening .case-study-title { visibility: visible; }
+        html.tp-anim .tp-opening p { opacity: 1; transform: none; filter: none; transition: none; }
+    }
+
+    /* Navigation rail — one label per project, nothing else. */
+    .tp-rail {
+        position: fixed;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 150;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+    }
+    .tp-rail button {
+        display: block;
+        /* Padding is cancelled by the negative margin, so the text keeps its
+           right edge on the margin while the hover plate can breathe. */
+        margin: 0 -6px 0 0;
+        padding: 2px 6px;
+        border: 0;
+        border-radius: 3px;
+        background-color: transparent;
+        font-family: NeueHaasGroteskLight;
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.5px;
+        text-align: right;
+        color: rgba(0, 0, 0, 0.25);
+        /* Animated hover — earlier version, uncomment to bring it back:
+           transition: color 0.3s ease, background-color 0.3s ease; */
+        transition: color 0.3s ease;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    /* On narrow screens the unfolded name reaches over the module: the plate
+       keeps it readable whatever is behind, and is invisible at rest. */
+    .tp-rail button:hover {
+        color: rgba(0, 0, 0, 0.5);
+        background-color: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(3px);
+    }
+    .tp-rail button.active:hover { color: var(--black); }
+    .tp-rail button.active { color: var(--black); }
+    /* The project name unfolds on hover. The right edge stays pinned to the
+       margin, so the label grows leftwards. */
+    .tp-rail .tp-name {
+        display: inline-block;
+        vertical-align: top;
+        max-width: 0;
+        padding-left: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 0;
+        /* Animated hover — earlier version, uncomment to bring it back:
+        transition: max-width 0.35s ease, padding-left 0.35s ease, opacity 0.25s ease; */
+    }
+    .tp-rail button:hover .tp-name,
+    .tp-rail button:focus-visible .tp-name {
+        max-width: 220px;
+        padding-left: 5px;
+        opacity: 1;
+    }
+
+    /* Project header inside the content column */
+    .tp-project {
+        /* No rule above the head: it is drawn under it (see .tp-head::before). */
+        margin-top: 120px;
+        scroll-margin-top: 100px;
+    }
+    .tp-project:first-of-type { margin-top: 0; }
+    .tp-project-title {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 40px;
+        line-height: 45px;
+        margin: 0 0 20px 0;
+    }
+    .tp-project-line {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    .tp-project-line p { margin: 0; }
+    .tp-meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 20px;
+        margin-bottom: 40px;
+        border-top: 1px solid var(--lightGrey);
+        padding-top: 15px;
+    }
+    /* 10pt ≈ 13.33px for the value, 6pt = 8px for the label. */
+    .tp-meta p { margin: 0 0 10px 0; font-size: 13.33px; line-height: 17px; }
+    .tp-meta .case-study-small { display: block; margin-bottom: 4px; font-size: 8px; letter-spacing: 0.6px; }
+
+    /* A single isolated line — used for the bridge between the two projects */
+    .tp-bridge {
+        margin: 90px 0 90px 0;
+        font-family: var(--serif);
+        font-size: 30px;
+        line-height: 36px;
+        max-width: 60%;
+    }
+
+    /* The quoted comment in the divergence case */
+    .tp-comment {
+        font-family: var(--serif);
+        font-size: 34px;
+        line-height: 40px;
+        margin: 10px 0 30px 0;
+        max-width: 80%;
+    }
+    .tp-swatch {
+        display: inline-block;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        margin-right: 6px;
+        position: relative;
+        top: -1px;
+    }
+    .tp-green { background: #2f8f4e; }
+    .tp-blue  { background: #3c73ff; }
+
+    /* Closing questions */
+    .tp-close { margin: 120px 0 40px 0; }
+    .tp-close p {
+        font-family: var(--serif);
+        font-size: 26px;
+        line-height: 32px;
+        max-width: 70%;
+        margin: 0 0 26px 0;
+    }
+
+    /* ------------------------------------------------------------------
+       PLACEHOLDER — remove every one of these before sending.
+       Each box says which image or video goes in its place.
+       ------------------------------------------------------------------ */
+    .tp-ph {
+        border: 1px solid var(--techBlue);
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 30px;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+        color: var(--techBlue);
+        font-family: NeueHaasGroteskLight;
+        font-size: 12px;
+        line-height: 17px;
+        letter-spacing: 0.4px;
+    }
+    .tp-ph.tall { aspect-ratio: 4/5; }
+    .tp-ph b { font-size: 10px; text-transform: uppercase; letter-spacing: 0.75px; display: block; margin-bottom: 8px; }
+    .tp-ph-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 5px; }
+    .tp-ph-row .tp-ph { margin-bottom: 0; }
+
+    /* A line tightened by hand, to keep it whole where it has to be. */
+    .tp-tight { letter-spacing: -0.1px; }
+
+    /* Two pieces of media on one line, at the same size. */
+    .tp-pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 5px; }
+    .tp-pair video, .tp-pair img { margin-bottom: 0; width: 100%; }
+    /* The frame becomes the mask: the video is enlarged inside it and whatever
+       falls outside is cut, so the two never grow into each other. */
+    .tp-crop {
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        margin-bottom: 0;
+        /* The mask is drawn: a hairline around the cropped frame. */
+        border: 1px solid var(--black);
+        box-sizing: border-box;
+    }
+    /* The id selector in style.css (#case-study video) gives the video a 16/9
+       ratio and an automatic height, and it wins over a plain class: without
+       the id here the video kept its own height inside a shorter mask and hung
+       out of the bottom. */
+    #case-study .tp-crop video {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: auto;
+        object-fit: cover;
+        object-position: center center;
+        display: block;
+        transform: scale(2);
+        transform-origin: center center;
+    }
+
+    /* The composition is one piece: the click is caught by the wrapper, so the
+       pointer stays consistent over image and videos alike. */
+    .tp-composition { cursor: pointer; }
+    .tp-composition img, .tp-composition video { pointer-events: none; }
+
+    /* Inside the modal the clone is outside #case-study, so the sizing rules
+       that hang off that id are restated here on the clone. */
+    /* The stage holds the space the scaled composition actually occupies, so
+       the modal never has to scroll. */
+    .tp-composition-stage { position: relative; overflow: visible; }
+    .tp-composition-expanded {
+        position: absolute;
+        top: 0; left: 0;
+        transform-origin: top left;
+    }
+    .tp-composition-expanded img { width: 100%; height: auto; display: block; margin-bottom: 5px; }
+    .tp-composition-expanded video {
+        width: 100%; height: auto; aspect-ratio: 16 / 9;
+        object-fit: cover; display: block; margin-bottom: 9px;
+    }
+    .tp-composition-expanded .tp-crop video {
+        width: 100%; height: 100%; aspect-ratio: auto;
+        object-fit: cover; object-position: center center;
+        display: block; margin-bottom: 0;
+        transform: scale(2); transform-origin: center center;
+    }
+
+    /* A cell of a grid that carries its own caption: they travel together when
+       the grid folds into one column. */
+    .tp-figure { margin: 0; }
+    .tp-figure img, .tp-figure video { display: block; width: 100%; margin-bottom: 0; }
+    .tp-figure .tp-caption { margin: 2px 0 0 0; }
+
+    /* A vertical piece of media, set on the text column: same measure as the
+       paragraphs (half the module minus half the 20px gap of .case-study-text)
+       and pushed to the right margin, where those paragraphs sit. */
+    .tp-portrait {
+        width: calc(50% - 10px);
+        margin-left: auto;
+    }
+    #case-study .tp-portrait video {
+        aspect-ratio: 9 / 16;
+        height: auto;
+        object-fit: cover;
+    }
+
+    /* The dataset screenshots are white to the edge: a hairline declares where
+       the image stops. */
+    .tp-stroke {
+        border: 1px solid var(--black);
+        box-sizing: border-box;
+        /* 8px per side: the image sits 16px narrower than the frame, and its
+           height follows, so a margin of white is left all around. */
+        padding: 8px;
+    }
+
+    /* The signature. It sits on the right edge of the module, where every line
+       of the page ends, and it is the last thing set in the serif of the text. */
+    .tp-sign {
+        margin: 120px 0 0 0;
+        text-align: right;
+    }
+    /* No size of its own: it reads at exactly the size of the paragraphs. */
+    .tp-sign p { margin: 0; }
+    .tp-sign .tp-sign-name { margin-top: 6px; }
+
+    /* The mark is pulled up onto the name: the two overlap the way a signature
+       overlaps the typed name under it. The id in the selector is not
+       decoration — style.css sets #content img to width 100%, and a class
+       alone would lose to it. */
+    #case-study .tp-sign-mark {
+        display: inline-block;
+        width: 200px;
+        height: auto;
+        margin: -37px 0 0 0;
+        position: relative;
+        /* Nudged past the right edge of the module, the way a hand signs
+           slightly outside the ruled area. */
+        left: 65px;
+        z-index: 1;
+        mix-blend-mode: multiply;
+    }
+
+    @media screen and (max-width: 800px) {
+        .tp-sign { margin-top: 80px; }
+        #case-study .tp-sign-mark { width: 160px; margin-top: -18px; }
+    }
+
+    /* A note closing a text block: same measure as the paragraph above it, one
+       step down, so it reads as a reference and not as the argument. */
+    .tp-note {
+        /* Same face as the paragraph it closes: the grotesk display cut used
+           for the captions reads as tracked out at this size. */
+        font-family: inherit;
+        font-size: 15px;
+        line-height: 20px;
+        letter-spacing: 0;
+        color: #a0a0a0;
+        margin: 14px 0 0 0;
+    }
+
+    /* The link to the source sits in the caption, at the same size: it is a
+       reference, not a call to action. */
+    .tp-caption-link {
+        color: var(--techBlue);
+        text-decoration: none;
+        margin-left: 6px;
+    }
+    .tp-caption-link:hover { text-decoration: underline; }
+
+    /* Caption under a media block, used to declare what a render is */
+    .tp-caption {
+        font-family: NeueHaasGroteskLight;
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        color: #a0a0a0;
+        margin: 2px 0 12px 0;
+    }
+
+    @media screen and (max-width: 800px) {
+        /* style.css cleared the top of the page with #case-study-intro, which is
+           no longer here: without this the opening would sit under the navbar. */
+        #case-study { margin-top: 60px; }
+        .tp-project-title { font-size: 28px; line-height: 32px; }
+        /* Same move on mobile, where the section is a plain block: the rule
+           goes under the title instead of above the section. */
+        .tp-project { margin-top: 80px; border-top: 0; padding-top: 0; }
+        /* No sticky head on mobile: it would take most of a small screen. */
+        .tp-head { position: static; display: block; }
+        .tp-sub { font-size: 28px; line-height: 32px; margin: 0 0 20px 0; font-family: var(--serif); font-weight: 400; transform: none; clip-path: none; }
+        .tp-project-title { border-bottom: 0.25px solid var(--black); padding-bottom: 20px; }
+        .tp-project-line, .tp-meta { grid-template-columns: 1fr; }
+        /* On mobile the opening goes back to normal flow: a full screen of
+           centred text would push everything else too far down. */
+        .tp-opening { max-width: 100%; margin-bottom: 60px; min-height: 0; margin-top: 0; display: block; }
+        /* On mobile the line goes back to wrapping: fitting it would make it tiny. */
+        .tp-opening .case-study-title { font-size: 38px; line-height: 40px; margin-bottom: 28px; white-space: normal; }
+        .tp-opening p { max-width: 100%; }
+        /* No empty band on mobile: the rail would sit on top of the images. */
+        .tp-rail { display: none; }
+        .tp-bridge { max-width: 100%; font-size: 24px; line-height: 29px; margin: 60px 0; }
+        .tp-comment { max-width: 100%; font-size: 26px; line-height: 31px; }
+        .tp-close p { max-width: 100%; font-size: 21px; line-height: 26px; }
+        .tp-ph-row, .tp-pair { grid-template-columns: 1fr; }
+        /* On mobile the text column is the whole module, so the vertical video
+           follows it and takes the full width. */
+        .tp-portrait { width: 100%; margin-left: 0; }
+    }
+    </style>
+</head>
+<body data-free-videos>
+
+    <!--Navigation rail: one label per project-->
+    <nav class="tp-rail" aria-label="Projects">
+        <button type="button" data-target="#njord">2024 |<span class="tp-name">NJÖRD</span></button>
+        <button type="button" data-target="#not-clean-enough">2026 |<span class="tp-name">Not clean enough</span></button>
+    </nav>
+
+    <!--Modal-->
+    <div id="modal" class="modal" onclick="closeModal()">
+        <div class="modal-content">
+          <img id="expandedImg" alt="Expanded image">
+        </div>
+    </div>
+
+    <!--Content-->
+    <div id="content">
+        <div id="navbar">
+            <a href="assets/docs/NR_Giovanni_Coroneo.pdf" download style="color: var(--techBlue);">NR<span style="display:inline-block;transform:scaleY(-1);position:relative;top:-1.8px;">^</span></a>
+            <a href="assets/docs/CV_Giovanni_Coroneo.pdf" download style="color: var(--techBlue);">CV<span style="display:inline-block;transform:scaleY(-1);position:relative;top:-1.8px;">^</span></a>
+            <a href="mailto:coroneo.giovanni.2002@gmail.com" style="color: var(--techBlue);">Mail ↗</a>
+            <a href="https://gio-coroneo.github.io/index.html" target="_blank" rel="noopener" style="color: var(--techBlue);">Portfolio ↗</a>
+        </div>
+
+        <div id="case-study">
+
+        <!-- ==========================================================
+             OPENING
+             ========================================================== -->
+        <div class="tp-opening">
+            <h1 class="case-study-title"><em>NJÖRD</em> &amp; <em>Not clean enough</em>:<br>artefacts for a collective discussion.</h1>
+            <p><em>NJÖRD</em> interrogates a practice made possible by technology: bending living matter to an aesthetic whim. <em>Not Clean Enough</em> interrogates an aesthetic presented as natural and as the pinnacle of an ideal lifestyle, yet unattainable. On the level of content, the projects share nothing in common. In both artifacts, however, the same mechanism is at work. The public is not offered an argument to read, but a task to carry out.</p>
+            <p>Configuring a colour, classifying a comment: it is in this shift, from reading to gesture, that the content becomes open to discussion. The visitor’s gesture does not end with the act itself. It generates a trace, and this trace becomes the material on which collective discussion is built. My work has consisted in defining how that trace is generated, collected, made visible, and returned to those who produced it.</p>
+        </div>
+
+        <!-- ==========================================================
+             PROJECT 1 — NJÖRD
+             ========================================================== -->
+        <section class="tp-project" id="njord">
+            <div class="tp-head">
+            <h2 class="tp-project-title"><em>NJÖRD</em></h2>
+            <p class="tp-sub">Shape your Desire.</p>
+
+            <div class="tp-meta">
+                <p><span class="case-study-small">(  Scope  )</span>Speculative Design, Brand Design, UX &amp; UI Design.</p>
+                <p><span class="case-study-small">(  Context  )</span>Final Synthesis Studio C1, Politecnico di Milano.</p>
+                <p><span class="case-study-small">(  Exhibition  )</span><em>Raw Scenarios: reflections on human overconsumption</em>.</p>
+                <p><span class="case-study-small">(  Traces  )</span>286 salmon configured, recorded in the server log.</p>
+            </div>
+            </div><!-- /.tp-head -->
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p><em>NJÖRD</em> is a speculative design project that stems from real-world practice. The flesh of farmed salmon is white: its orange color comes from crustaceans that the salmon cannot eat. Producers color the flesh using dyes added to the feed, selected according to DSM-Firmenich’s SalmoFan, the industry’s color standard.</p>
+                </div>
+            </div>
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-01-salmofan.webp" alt="The SalmoFan">
+            <p class="tp-caption">SalmoFan — DSM-Firmenich colour standard, shades 20 to 34.</p>
+
+            <!-- 1 — The concept -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The project envisions a physical console that extends this choice to consumers, offering a variety of colors and textures to customize the flesh of their own farmed salmon. The device thus challenges the practice of reshaping living organisms to satisfy an aesthetic whim, exposing a choice that remains the sole domain of producers.</p>
+                </div>
+            </div>
+
+            <video src="assets/images/njord/njord-02-screen-configured-salmon.mp4" autoplay muted loop playsinline class="clickable"></video>
+            <p class="tp-caption">Screen — the salmon configured by the visitors.</p>
+
+            <!-- 2 — The identity -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>Visual identity wasn’t decoration—it’s what made it work. Had <em>NJÖRD</em> read as protest, no one would have believed the speculation. So I decided to set up a fake fish business: industry vocabulary, certification-grade cleanliness, a chain that never explains itself. The hard part was subtraction: any irony broke the spell.</p>
+                </div>
+            </div>
+
+            <div class="tp-composition clickable">
+                <img loading="lazy" src="assets/images/njord/njord-03-identity-elements.webp" alt="Elements of the identity" style="margin-bottom: 10px;">
+                <div class="tp-crop" style="aspect-ratio: auto; height: 165px; width: calc((100% - 10px) * 0.5044); margin-top: -180px; margin-bottom: 15px; position: relative; z-index: 1;"><video src="assets/images/njord/njord-04-identity-motion-1.mp4" autoplay muted loop playsinline style="transform: scale(2.8);"></video></div>
+
+                <div class="tp-pair" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="tp-crop" style="aspect-ratio: auto; height: 165px;"><video src="assets/images/njord/njord-05-identity-motion-2.mp4" autoplay muted loop playsinline></video></div>
+                    <div class="tp-crop" style="aspect-ratio: auto; height: 165px;"><video src="assets/images/njord/njord-06-identity-motion-3.mp4" autoplay muted loop playsinline></video></div>
+                    <div class="tp-crop" style="aspect-ratio: auto; height: 165px;"><video src="assets/images/njord/njord-07-identity-motion-4.mp4" autoplay muted loop playsinline></video></div>
+                </div>
+            </div>
+            <p class="tp-caption">Identity — logotype, typographic system and animated marks.</p>
+
+            <!-- 3 — The identity applied -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The applications that carry the identity are the ones the service actually needs: the pack the fillet is sealed in, the cooler bag it travels in, the ice packs that keep that bag cold. Nothing here is a showcase piece. It is the delivery chain doing its job, and it is what makes the service—and with it the identity—credible.</p>
+                </div>
+            </div>
+
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-08-packaging-vacuum-pack.webp" alt="The vacuum pack">
+            <p class="tp-caption">Packaging — vacuum pack for the fillet.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-09-packaging-box.webp" alt="The box">
+            <p class="tp-caption">Box — front claim and product label.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-10-ice-pack.webp" alt="The ice packs">
+            <p class="tp-caption">Ice pack — moulded shell, front and back.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-11-shipping-box.webp" alt="The shipping box">
+            <p class="tp-caption">Shipping box — pull strip along the front edge.</p>
+
+            <!-- 4 — The software -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>I handled the machine’s software, working with the hardware team. The interface had<br>to make configuring a living being feel like picking a paint sample. Every configuration was logged—not for research, but because the service had to process orders. That log became the day’s only record.</p>
+                </div>
+            </div>
+
+            <!-- Each cell is a figure, so image and caption stay together when
+                 the grid collapses to a single column on mobile. -->
+            <div class="tp-pair" style="grid-template-columns: repeat(2, 1fr);">
+                <figure class="tp-figure">
+                    <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-12-machine-drawing.webp" alt="The machine, technical drawing">
+                    <figcaption class="tp-caption">Machine — technical drawing, 1788 × 1400 mm.</figcaption>
+                </figure>
+                <figure class="tp-figure">
+                    <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-13-machine-exploded.webp" alt="The machine, exploded view">
+                    <figcaption class="tp-caption">Machine — exploded view of the build.</figcaption>
+                </figure>
+                <figure class="tp-figure" style="grid-column: 1 / -1;">
+                    <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-14-machine-interior.webp" alt="The machine, interior" style="width: 100%;">
+                    <figcaption class="tp-caption">Machine — the interior, with the wiring and the computer.</figcaption>
+                </figure>
+            </div>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-15-console-screen.webp" alt="The console">
+            <p class="tp-caption">Console — the screen above the ordering unit.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-16-fish-shop-render.webp" alt="Render of the fish shop" style="margin-bottom:0;">
+            <p class="tp-caption">Console — details on moving the knob.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-17-interface-screens.webp" alt="The console, opening screen">
+            <p class="tp-caption">Interface — four screens of the ordering flow.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>When the interaction with the machine ends, the service moves onto the customer’s own device. A QR code leads straight to it: the configuration just made can be consulted there, colour and texture alongside the data of that specific salmon. It opens on a phone as it does on a computer, and the choice follows the customer home.</p>
+                </div>
+            </div>
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-18-app-salmon.webp" alt="The app">
+            <p class="tp-caption">App — the salmon as the customer receives it.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-19-app-data-sheet.webp" alt="The app, salmon and data sheet">
+            <p class="tp-caption">App — the salmon and its data sheet.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-20-website-home.webp" alt="The website">
+            <p class="tp-caption">Website — the home page of the business.</p>
+
+
+            <!-- 5 — The day -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p><em>Raw Scenarios</em> ran on 22 June 2024 at DotDotDot, a Milan-based studio. Eleven groups, one day, a student-organized exhibition with a mostly academic audience. The high-tech fish market environment we designed around the console never made it in—resources, time, space. The identity did the job the space would have.</p>
+                </div>
+            </div>
+
+            <video src="assets/images/njord/njord-21-fish-shop-interior.mp4" autoplay muted loop playsinline class="clickable"></video>
+            <p class="tp-caption">Fish shop — render of the interior, console at the centre.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-22-console-disks.webp" alt="The console in use">
+            <p class="tp-caption">Console — the two disks that set colour and texture.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-23-visitors-configuring.webp" alt="Visitors at the console">
+            <p class="tp-caption">Visitors — a salmon configured at Raw Scenarios.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/njord/njord-24-console-in-use.webp" alt="The console at Raw Scenarios">
+            <p class="tp-caption">Console — in use at Raw Scenarios, 22 June 2024.</p>
+
+
+
+
+            <!-- 6 — The frameworks -->
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>Speculative design offers no model for what makes a project of this kind effective, so<br>I built four frameworks, one per dimension. They worked as instruments and failed as a reading: the judgements of 286 visitors became scores, and the scores an average, which removes divergence instead of recording it. The next evaluation area is built against this.</p>
+                    <p class="tp-note">The full material is in the Bachelor’s thesis, written in Italian.<br><a class="tp-caption-link" href="assets/docs/njord-elaborato-di-laurea.pdf" download style="margin-left: 0; white-space: nowrap;">Link to the Bachelor’s thesis ↗</a></p>
+                </div>
+            </div>
+
+
+        </section>
+
+        <!-- ==========================================================
+             PROJECT 2 — NOT CLEAN ENOUGH
+             ========================================================== -->
+        <section class="tp-project" id="not-clean-enough">
+            <div class="tp-head">
+            <h2 class="tp-project-title">Not clean enough</h2>
+
+            <div class="tp-meta">
+                <p><span class="case-study-small">(  Scope  )</span>Data Design, Brand Design, UX &amp; UI Design.</p>
+                <p><span class="case-study-small">(  Context  )</span>Final Synthesis Studio C3, Politecnico di Milano.</p>
+                <p><span class="case-study-small">(  Exhibition  )</span><em>Stream, Beef, Vibes</em>, Milan, February 2026</p>
+                <p><span class="case-study-small">(  Traces  )</span>104 classifications collected at the evaluation area</p>
+            </div>
+            </div><!-- /.tp-head -->
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p><em>Not Clean Enough</em> is an inquiry into the comments under the TikTok videos of <em>clean girl</em> influencers, specifically into those stating the impossibility of achieving the aesthetic promoted. The <em>clean</em> aesthetic is a minimal trend born in 2022 and spread rapidly across the U.S.A. and the U.K. It promotes an essential and apparently natural lifestyle.</p>
+                </div>
+            </div>
+
+            <video src="assets/images/not-clean-enough/not-clean-enough-01-mapping-wall.mp4" data-loop-end="7" autoplay muted loop playsinline class="clickable"></video>
+            <p class="tp-caption">Mapping wall — the comments excluded from the clean girl aesthetic.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The project began within a group of four people and started from three inquiries carried out in parallel on the same phenomenon. The first identifies which actions and which objects make up the aesthetic of the trend. The second estimates the real cost of what the videos show. The third examines how the public perceives that ideal.</p>
+                </div>
+            </div>
+
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-02-dataset-actions.webp" alt="The dataset of actions">
+            <p class="tp-caption">Dataset — the actions shown in the videos, timed. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1v5SrpmpmNBWBETa0MyPN3-ibSB_cc-r9Icqz2hju7rI/edit?gid=2052446594#gid=2052446594" target="_blank" rel="noopener">Link to the dataset ↗</a></p>
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-03-dataset-products.webp" alt="The dataset of comments">
+            <p class="tp-caption">Dataset — the products shown in the videos and their cost. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1k7qwSBkcbrXUpfycuuPvOPXDxhHODbjMEDrselw5G-g/edit?gid=1685251223#gid=1685251223" target="_blank" rel="noopener">Link to the dataset ↗</a></p>
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-04-dataset-comments.webp" alt="The dataset of comments">
+            <p class="tp-caption">Dataset — the comments, classified by category. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1vdbA58Y9z8BD6j7tGLjQfWcMOy4isOOWxoQdpAXyK6A/edit?gid=1508084869#gid=1508084869" target="_blank" rel="noopener">Link to the dataset ↗</a></p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The third inquiry produced the most solid outcome. First two describe the phenomenon; in the comments, instead, those who observe it speak for themselves. The work therefore concentrates on a single question: what do those who would like to follow the trend, cannot, declare they lack? Four categories: <b>appearance</b>, <b>status</b>, <b>motivation</b>, <b>provenance</b>.</p>
+                </div>
+            </div>
+
+
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-05-dataset-insecurities.webp" alt="The dataset of insecurities">
+            <p class="tp-caption">Dataset — the comments and the insecurity each one names. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/180LgBtwPb8n73WF-U5Hh86VJ2vL678RdlxIiGVJ0B1U/edit?gid=0#gid=0" target="_blank" rel="noopener">Link to the dataset ↗</a></p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The organisation of the comments is followed by a manual classification, carried out on the basis of keywords. The visualisation consists of seventeen vertical columns printed on banners: the length of each corresponds to the number of people who declared that same lack, and makes all the categories immediately comparable with one another.</p>
+                </div>
+            </div>
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-06-installation.webp" alt="The installation">
+            <p class="tp-caption">Installation — the mapping wall and the project posters.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-07-banners.webp" alt="The banners">
+            <p class="tp-caption">Banners — each comment with its expression underlined.</p>
+
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The exhibition path opens with a video in four parts, one for each of the categories identified. Each section is introduced by the avatar of a real <em>clean girl</em> influencer, generated with AI. The avatar anticipates a collection of videos that visually show the lack to which that category corresponds. It is the first element that the public encounters.</p>
+                </div>
+            </div>
+
+            <figure class="tp-figure tp-portrait">
+                <video src="assets/images/not-clean-enough/not-clean-enough-08-opening-video.mp4" muted loop playsinline preload="none" data-deferred class="clickable"></video>
+                <figcaption class="tp-caption">Video — the opening sequence, in four parts.</figcaption>
+            </figure>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>Each project in the exhibition had its evaluation area. The one for <em>Not Clean Enough</em> consists of a table with markers, stickers and cards, with the instructions printed directly on its surface. Facing the table stands a board divided into columns, one for each of the four categories plus an <b>Unsure</b> column, where each card is then posted.</p>
+                </div>
+            </div>
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-09-evaluation-area.webp" alt="The evaluation area">
+            <p class="tp-caption">Evaluation area — the table and the board of columns.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>Four steps are printed on the table, in the order they are to be followed.</p>
+                    <p>One. Take a single card.<br>Two. Read the underlined expressions.<br>Three. Highlight the one that names the lack.<br>Four. Post the card under the category matching the colour you used.</p>
+                </div>
+            </div>
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-10-table-instructions.webp" alt="The instructions printed on the table">
+            <p class="tp-caption">Table — the instructions printed on the surface.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-11-card.webp" alt="A card">
+            <p class="tp-caption">Card — the question printed on every card.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p><em>Not Clean Enough</em> was shown at <em>Stream, Beef, Vibes</em> at Stecca 3.0, an exhibition space in Milan, where 104 participants took part in the evaluation. The evaluation area itself collected no judgements: it handed each visitor a set of uncategorised comments and asked them to apply to those the same constructive logic as the visualisation itself.</p>
+                </div>
+            </div>
+
+
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-12-opening.webp" alt="The opening">
+            <p class="tp-caption">Opening — the evaluation area in use.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-13-cards-highlighted.webp" alt="The highlighted cards">
+            <p class="tp-caption">Cards — the expressions highlighted by the visitors.</p>
+            <img loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-14-cards-appearance.webp" alt="The cards under Appearance">
+            <p class="tp-caption">Appearance — the cards posted under that category.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p>The cards filled in at the evaluation area were digitised at a later stage, in the context<br>of an internship at the DensityDesign Lab. The analysis of the results shows that some categories are more ambiguous than others: <b>provenance</b> in particular, often attributed<br>to comments that do not belong to it. Of the 104 cards, 93 are correct and 11 incorrect.</p>
+                </div>
+            </div>
+
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-15-dataset-digitised.webp" alt="The digitised cards">
+            <p class="tp-caption">Dataset — the 104 cards, digitised and checked.</p>
+
+            <div class="case-study-text">
+                <h2></h2>
+                <div>
+                    <p><span class="tp-tight">The mechanism is visible in a single case. On each card some expressions are underlined,</span><br>and those are the ones to be assessed. In the comment “The products cost 5000 Mexican pesos. We are poor” both pointed to <b>Status</b>, but the card ended up under <b>Provenance</b>: the reading had been shifted by the word <em>Mexican</em>, printed there but not underlined.</p>
+                </div>
+            </div>
+
+            <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-16-error-map.webp" alt="The classification error map">
+            <p class="tp-caption">Error map — the incorrect cards, by type of misreading.</p>
+
+        </section>
+
+        <!-- The page closes on the right, where the reading of every line ends. -->
+        <div class="tp-sign">
+            <p>Thank you for your attention.</p>
+            <p class="tp-sign-name">Giovanni Coroneo</p>
+            <img class="tp-sign-mark" src="assets/images/signature.webp" alt="Signature of Giovanni Coroneo">
+        </div>
+
+        </div><!-- /#case-study -->
+
+        <div id="footer"></div>
+    </div>
+
+<script src="script.js"></script>
+<script>
+/* The page always opens on the first screen: browsers restore the previous
+   scroll position on reload, which here means landing inside NJÖRD. A hash in
+   the address is still honoured. */
+(function () {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    /* An address left with #njord (or any other anchor) would open the page
+       inside a project: the hash is dropped and the page starts from the top. */
+    if (window.location.hash && history.replaceState) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    /* Some browsers put the old position back only once the page has grown
+       enough to allow it, which happens well after load: the top is re-asserted
+       for a short while, and dropped as soon as the reader scrolls on purpose. */
+    var touched = false;
+    ['wheel', 'touchstart', 'keydown'].forEach(function (evt) {
+        window.addEventListener(evt, function () { touched = true; }, { passive: true });
+    });
+
+    function top() { if (!touched) window.scrollTo(0, 0); }
+
+    top();
+    [0, 60, 150, 300, 600, 1000].forEach(function (wait) { setTimeout(top, wait); });
+    window.addEventListener('load', top);
+    /* Back/forward cache: the page is shown again with its old position. */
+    window.addEventListener('pageshow', function (e) { if (e.persisted) { touched = false; top(); } });
+})();
+</script>
+<script>
+/* Navigation rail: smooth scroll on click, active bar follows the scroll. */
+(function () {
+    var bars = [].slice.call(document.querySelectorAll('.tp-rail button'));
+    var items = bars.map(function (bar) {
+        return { bar: bar, el: document.querySelector(bar.getAttribute('data-target')) };
+    }).filter(function (i) { return i.el; });
+    if (!items.length) return;
+
+    /* The point where a head starts sticking. The head is the first thing in
+       its section and the section has no border or padding of its own, so the
+       top of the section is the head's place in the flow — and unlike the head
+       itself it does not move when the head parks at the top. Reading it costs
+       nothing and, above all, changes nothing: measuring by switching sticky
+       off made the block flicker on every frame of the animation. */
+    function stickPoint(section) {
+        var exact = window.pageYOffset + section.getBoundingClientRect().top;
+        /* One pixel past the threshold, on purpose. Landing exactly on it puts
+           the head on the fence between stuck and not stuck: the layout position
+           is fractional, the scroll offset can be fractional too, and the
+           browser ends up flipping between the two states from one frame to the
+           next — a still page that keeps re-deciding where its head belongs.
+           That is the shimmer that appeared once the movement had stopped.
+           A single pixel past, the head is unambiguously stuck, and since it
+           covers that pixel itself nothing moves on screen. */
+        return Math.max(0, Math.ceil(exact) + 1);
+    }
+
+    /* Own scroll animation instead of behaviour:'smooth'. The target is
+       re-measured on every frame, so the images loading on the way — which
+       change the height of the page behind — bend the curve instead of
+       producing a jump at the end. */
+    var running = null;
+    var magnet = false;
+
+    var interrupted = false;
+
+    /* Every movement gets a number. A movement started while another one is
+       still settling makes the older one expire on the spot: without this, the
+       corrections left behind by the previous glide land on the page later and
+       drag it back to a destination nobody asked for any more — what happens
+       when scroll up and scroll down follow each other with no pause. */
+    var ticket = 0;
+
+    /* `where` is a function so the destination can be re-read while moving. */
+    function glide(where, done) {
+        if (running) cancelAnimationFrame(running);
+        var mine = ++ticket;
+        interrupted = false;
+        var start = window.pageYOffset;
+        var target = where();
+        var duration = Math.min(1500, Math.max(600, Math.abs(target - start) * 0.6));
+        var t0 = null;
+        var checked = 0;
+
+        function step(now) {
+            if (mine !== ticket) return;
+            if (t0 === null) t0 = now;
+            var t = Math.min(1, (now - t0) / duration);
+            /* easeInOutCubic */
+            var e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            /* The destination is re-read a few times a second, not on every
+               frame: each reading forces the browser to recompute the layout in
+               the middle of the animation, and that is where the stutter came
+               from. */
+            if (now - checked > 120) { target = where(); checked = now; }
+            window.scrollTo(0, Math.round(start + (target - start) * e));
+            if (t < 1) {
+                running = requestAnimationFrame(step);
+            } else {
+                running = null;
+                if (done) done();
+                /* Late-loading images can still move the target: settle on it. */
+                [200, 600, 1200].forEach(function (wait) {
+                    setTimeout(function () {
+                        if (mine !== ticket || running || interrupted) return;
+                        var end = where();
+                        if (Math.abs(window.pageYOffset - end) > 1) window.scrollTo(0, end);
+                    }, wait);
+                });
+            }
+        }
+        running = requestAnimationFrame(step);
+    }
+
+    /* Any manual scroll wins over the animation, unless it is the magnet
+       carrying the page to the first project. */
+    ['wheel', 'touchstart', 'keydown'].forEach(function (evt) {
+        window.addEventListener(evt, function () {
+            if (magnet) return;
+            interrupted = true;
+            if (running) { cancelAnimationFrame(running); running = null; }
+        }, { passive: true });
+    });
+
+    items.forEach(function (i) {
+        i.bar.addEventListener('click', function () {
+            glide(function () { return stickPoint(i.el); });
+        });
+    });
+
+    /* Magnet: on the opening screen the first hint of downward scroll takes the
+       page to the point where the NJÖRD head locks onto the top edge. While it
+       travels, the scroll is held so the movement is one single gesture. */
+    var first = items[0] && items[0].el;
+    if (first) {
+        /* A trackpad keeps sending wheel events after the fingers have left it.
+           If the magnet let go as soon as it landed, that momentum would push
+           the page past the anchor and the corrections would yank it back —
+           the jolt at the end of the movement. The magnet therefore holds on
+           until the wheel has been quiet for a moment. */
+        var tail = null, landed = 0, lastDelta = Infinity;
+        var release = function () {
+            clearTimeout(tail);
+            magnet = false;
+            landed = 0;
+            lastDelta = Infinity;
+        };
+        var hold = function () {
+            if (!landed) landed = Date.now();
+            clearTimeout(tail);
+            tail = setTimeout(release, 220);
+        };
+        var aim = null;
+        var pull = function (where, name) {
+            /* Already travelling that way: let it finish instead of restarting
+               the animation from the current position at every wheel event. */
+            if (running && aim === name) return;
+            aim = name;
+            magnet = true;
+            clearTimeout(tail);
+            landed = 0;
+            lastDelta = Infinity;
+            glide(where, function () { aim = null; hold(); });
+        };
+        /* Momentum decays; a new push does not. While the magnet is holding on
+           after landing, an event that is stronger than the previous one — or
+           anything at all after half a second — is a real gesture: the magnet
+           lets go at once and the page answers on the first scroll, instead of
+           swallowing two or three attempts. */
+        var stillMomentum = function (delta) {
+            if (Date.now() - landed > 500) return false;
+            if (delta > lastDelta + 1) return false;
+            lastDelta = delta;
+            return true;
+        };
+        var usable = function () {
+            return !magnet && !window.matchMedia('(max-width: 800px)').matches;
+        };
+        /* Downwards: anywhere on the opening screen. */
+        var armedDown = function () {
+            return usable() && window.pageYOffset < stickPoint(first) - 2;
+        };
+        /* Upwards: only with the head already parked on the top edge. */
+        var armedUpTop = function () {
+            if (!usable() || window.pageYOffset <= 0) return false;
+            return Math.abs(window.pageYOffset - stickPoint(first)) <= 6;
+        };
+        var toHead = function () { return stickPoint(first); };
+        var toTop = function () { return 0; };
+
+        /* The resistance. Coming up from inside the project the scroll stays
+           natural until it reaches the head, where it simply stops — no
+           animation, no pull: the page just does not go past that line. The
+           gesture is then absorbed until the wheel falls quiet, so the momentum
+           of the same flick cannot carry on. The next scroll up is a new
+           gesture, and that is the one the magnet answers. */
+        var gate = 'free';           /* free → stopped → ready */
+        var quiet = null;
+        var pinned = null;
+        /* Once stopped, the position is held on every frame until the wheel
+           falls quiet. The browser animates its own wheel scrolling, and that
+           animation was still running towards a point above the line while the
+           page was being put back on it — the two pulling against each other is
+           the flicker at the landing. Re-asserting the line before every paint
+           settles it in one go. */
+        var stay = function () {
+            if (pinned) return;
+            var still = 0;
+            var frame = function () {
+                if (gate !== 'stopped') { pinned = null; return; }
+                var line = stickPoint(first);
+                var drift = window.pageYOffset - line;
+                /* Sub-pixel differences are left alone: correcting them means
+                   scrolling the page by a fraction of a pixel over and over,
+                   which is invisible as movement and visible as flicker. */
+                if (Math.abs(drift) > 1) {
+                    window.scrollTo(0, line);
+                    still = 0;
+                } else {
+                    still++;
+                }
+                /* Once the page has held its place for a few frames the watch
+                   is over: nothing is fighting for the scroll any more, and
+                   there is no reason to keep touching it. */
+                if (still > 4) { pinned = null; return; }
+                pinned = requestAnimationFrame(frame);
+            };
+            pinned = requestAnimationFrame(frame);
+        };
+        var absorb = function () {
+            stay();
+            clearTimeout(quiet);
+            quiet = setTimeout(function () { gate = 'ready'; }, 220);
+        };
+        /* Wheel deltas can be counted in lines or pages instead of pixels. */
+        var px = function (e) {
+            if (e.deltaMode === 1) return e.deltaY * 16;
+            if (e.deltaMode === 2) return e.deltaY * window.innerHeight;
+            return e.deltaY;
+        };
+
+        function upward(delta, e) {
+            if (!usable()) return;
+            var line = stickPoint(first);
+            var y = window.pageYOffset;
+
+            if (gate === 'stopped') {          /* still the same flick */
+                e.preventDefault();
+                window.scrollTo(0, line);
+                absorb();
+                return;
+            }
+            if (y <= 0) return;
+            if (Math.abs(y - line) <= 6) {     /* parked: the magnet takes over */
+                e.preventDefault();
+                gate = 'free';
+                pull(toTop, 'top');
+                return;
+            }
+            if (y > line && y + delta < line) { /* this scroll would go past it */
+                e.preventDefault();
+                window.scrollTo(0, line);
+                gate = 'stopped';
+                absorb();
+            }
+        }
+
+        window.addEventListener('wheel', function (e) {
+            if (magnet) {
+                if (running || stillMomentum(Math.abs(e.deltaY))) {
+                    e.preventDefault();
+                    if (!running) hold();
+                    return;
+                }
+                release();
+            }
+            var delta = px(e);
+            if (delta > 0) {
+                gate = 'free';
+                clearTimeout(quiet);
+                if (armedDown()) { e.preventDefault(); pull(toHead, 'head'); }
+            } else if (delta < 0) {
+                upward(delta, e);
+            }
+        }, { passive: false });
+
+        window.addEventListener('keydown', function (e) {
+            var down = e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ';
+            var up = e.key === 'ArrowUp' || e.key === 'PageUp';
+            if (down) {
+                gate = 'free';
+                clearTimeout(quiet);
+                if (armedDown()) { e.preventDefault(); pull(toHead, 'head'); }
+            } else if (up) {
+                upward(e.key === 'PageUp' ? -window.innerHeight : -120, e);
+            }
+        });
+
+        var startY = null;
+        window.addEventListener('touchstart', function (e) {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        window.addEventListener('touchmove', function (e) {
+            if (magnet) {
+                if (running) { e.preventDefault(); return; }
+                release();
+            }
+            if (startY === null) return;
+            var moved = startY - e.touches[0].clientY;
+            if (moved > 2 && armedDown()) { e.preventDefault(); pull(toHead, 'head'); }
+            else if (moved < -2 && armedUpTop()) { e.preventDefault(); pull(toTop, 'top'); }
+        }, { passive: false });
+    }
+
+    function update() {
+        var probe = window.innerHeight * 0.35;
+        /* No project is active while the opening still holds the screen:
+           the first label lights up only once NJÖRD passes the probe. */
+        var current = null;
+        items.forEach(function (i) {
+            if (i.el.getBoundingClientRect().top <= probe) current = i;
+        });
+        items.forEach(function (i) {
+            i.bar.classList.toggle('active', i === current);
+        });
+    }
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+})();
+
+/* One span per character, for any line that has to churn. The opening title is
+   split on every visit, animation or not, so it is measured and set identically
+   either way: the size fitted below would otherwise differ between states. */
+window.tpSplit = (function () {
+    function split(node) {
+        Array.prototype.slice.call(node.childNodes).forEach(function (child) {
+            if (child.nodeType === 1) { split(child); return; }
+            if (child.nodeType !== 3) return;
+
+            var frag = document.createDocumentFragment();
+            child.nodeValue.split('').forEach(function (c) {
+                if (c === ' ') { frag.appendChild(document.createTextNode(c)); return; }
+                var ch = document.createElement('span');
+                ch.className = 'tp-ch';
+                ch.textContent = c;
+                ch.setAttribute('data-final', c);
+                if (/[a-zA-ZÀ-ÿ]/.test(c)) ch.setAttribute('data-scramble', '');
+                frag.appendChild(ch);
+            });
+            node.replaceChild(frag, child);
+        });
+    }
+    return split;
+})();
+
+(function () {
+    var title = document.querySelector('.tp-opening .case-study-title');
+    if (title) window.tpSplit(title);
+})();
+
+/* Opening title: never wraps. Its size is reduced only as much as needed for the
+   longest of its two lines to fit the column, up to the 60px set in the CSS. */
+(function () {
+    var title = document.querySelector('.tp-opening .case-study-title');
+    if (!title) return;
+    var MAX = 60;
+
+    function fit() {
+        if (window.matchMedia('(max-width: 800px)').matches) {
+            title.style.fontSize = '';
+            return;
+        }
+        title.style.fontSize = MAX + 'px';
+        var available = title.parentNode.clientWidth;
+        var needed = title.scrollWidth;
+        if (needed > available && available > 0) {
+            title.style.fontSize = Math.floor(MAX * available / needed) + 'px';
+        }
+    }
+
+    fit();
+    window.addEventListener('resize', fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    window.addEventListener('load', fit);
+})();
+
+/* Opening animation. The title is typed out; ahead of the cursor the letters
+   that have not settled yet keep changing, heavily at the start of the line and
+   less and less towards its end. The two paragraphs rise into focus just before
+   the last character lands. */
+(function () {
+    var root = document.documentElement;
+    if (!root.classList.contains('tp-anim')) return;
+
+    var opening = document.querySelector('.tp-opening');
+    var title = opening && opening.querySelector('.case-study-title');
+    if (!title) { root.classList.remove('tp-anim'); return; }
+
+    var chars = Array.prototype.slice.call(title.querySelectorAll('.tp-ch'));
+    var paras = Array.prototype.slice.call(opening.querySelectorAll('p'));
+
+    var CHAR_MS = 15;                       /* one character */
+    var TICK_MS = 45;                       /* one change of a random glyph */
+    var WIN_MAX = 3;                        /* letters churning at the start */
+    var WIN_MIN = 1;                        /*            ...and at the end */
+    var LEAD_MS = 260;                      /* the paragraphs anticipate the end */
+    var POOL = 'abcdefghijklmnopqrstuvwxyz';
+
+    var total = chars.length * CHAR_MS;
+
+    chars.forEach(function (ch) { ch.classList.add('is-void'); });
+    title.style.visibility = 'visible';
+
+    function randomFor(ch) {
+        var c = ch.getAttribute('data-final');
+        var r = POOL[(Math.random() * POOL.length) | 0];
+        return c === c.toUpperCase() ? r.toUpperCase() : r;
+    }
+
+    var paragraphsIn = false;
+    var lastTick = -1;
+    var start = null;
+
+    function frame(now) {
+        if (start === null) start = now;
+        var t = now - start;
+        var cursor = Math.floor(t / CHAR_MS);
+        var progress = Math.min(1, cursor / chars.length);
+        var win = Math.max(WIN_MIN, Math.round(WIN_MAX * (1 - progress)));
+        var tick = Math.floor(t / TICK_MS);
+        var reroll = tick !== lastTick;
+        lastTick = tick;
+
+        for (var i = 0; i < chars.length; i++) {
+            var ch = chars[i];
+            if (i < cursor) {
+                if (!ch.classList.contains('is-set')) {
+                    ch.classList.remove('is-void', 'is-scrambling');
+                    ch.classList.add('is-set');
+                    ch.textContent = ch.getAttribute('data-final');
+                }
+            } else if (i < cursor + win && ch.hasAttribute('data-scramble')) {
+                if (!ch.classList.contains('is-scrambling')) {
+                    ch.classList.remove('is-void');
+                    ch.classList.add('is-scrambling');
+                }
+                if (reroll) ch.textContent = randomFor(ch);
+            }
+        }
+
+        if (!paragraphsIn && t >= total - LEAD_MS) {
+            paragraphsIn = true;
+            paras.forEach(function (p, n) {
+                setTimeout(function () { p.classList.add('is-in'); }, n * 90);
+            });
+        }
+
+        if (cursor <= chars.length) { requestAnimationFrame(frame); return; }
+
+        /* Done: every character settles on its own glyph. */
+        chars.forEach(function (ch) {
+            ch.classList.remove('is-void', 'is-scrambling');
+            ch.classList.add('is-set');
+            ch.textContent = ch.getAttribute('data-final');
+        });
+        try { sessionStorage.setItem('tp-opening-seen', '1'); } catch (e) {}
+
+        /* The moment the last character lands: the idle flicker counts its two
+           seconds from here, not from the end of the paragraphs. */
+        title.dispatchEvent(new CustomEvent('tp:typed'));
+
+        /* The flag is dropped only once the paragraphs have finished rising:
+           taking it off earlier would cut their transition short. */
+        setTimeout(function () {
+            root.classList.remove('tp-anim');
+            paras.forEach(function (p) { p.style.willChange = 'auto'; });
+        }, LEAD_MS + 90 * paras.length + 900);
+    }
+
+    requestAnimationFrame(frame);
+})();
+
+/* Once the title has settled it does not go completely still: now and then a
+   run of letters somewhere inside the line churns for a moment and goes back
+   to itself. The run is one, two or three letters, and sometimes two runs go
+   at once in different words — enough irregularity that the eye never learns
+   the rhythm. */
+window.tpIdleScramble = function (title, opts) {
+    opts = opts || {};
+
+    var chars = Array.prototype.slice.call(title.querySelectorAll('.tp-ch[data-scramble]'));
+    var all = Array.prototype.slice.call(title.querySelectorAll('.tp-ch'));
+    if (chars.length < (opts.min || 6)) return null;
+
+    var POOL = 'abcdefghijklmnopqrstuvwxyz';
+    var GAP_MIN = opts.gapMin || 2600;   /* the quietest the line ever gets */
+    var GAP_MAX = opts.gapMax || 6400;
+    var TICK_MS = 70;      /* one change of a random glyph */
+    var TICKS_MIN = 3;     /* how long a run stays unsettled */
+    var TICKS_MAX = 8;
+    var EDGE = opts.edge === undefined ? 3 : opts.edge;
+    var LEN = [1, 2, 2, 2, 3];   /* runs are usually two letters long */
+    var TWO_RUNS = 0.28;         /* now and then, two at the same time */
+
+    var running = false;
+    var timer = null;
+    var live = [];
+
+    var visible = true;
+    if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+            visible = entries[0].isIntersecting;
+        }, { threshold: 0 }).observe(title);
+    }
+
+    /* Every run of consecutive letters that stays inside one word. */
+    var runs = { 1: [], 2: [], 3: [] };
+    for (var len = 1; len <= 3; len++) {
+        for (var i = EDGE; i <= all.length - EDGE - len; i++) {
+            var run = [], ok = true;
+            for (var k = 0; k < len; k++) {
+                var ch = all[i + k];
+                if (!ch.hasAttribute('data-scramble')) { ok = false; break; }
+                if (k && all[i + k - 1].nextSibling !== ch) { ok = false; break; }
+                run.push(ch);
+            }
+            if (ok) runs[len].push(run);
+        }
+    }
+    if (!runs[1].length) return;
+
+    function pick(list) { return list[(Math.random() * list.length) | 0]; }
+
+    function pickRun() {
+        var len = pick(LEN);
+        while (len > 1 && !runs[len].length) len--;
+        return pick(runs[len]);
+    }
+
+    function randomFor(ch) {
+        var c = ch.getAttribute('data-final');
+        var r = POOL[(Math.random() * POOL.length) | 0];
+        return c === c.toUpperCase() ? r.toUpperCase() : r;
+    }
+
+    /* One run churns and settles on its own clock: two runs running together
+       are not in step with each other. */
+    function churn(run, done) {
+        var n = 0;
+        var ticks = TICKS_MIN + ((Math.random() * (TICKS_MAX - TICKS_MIN + 1)) | 0);
+        run.forEach(function (ch) { ch.textContent = randomFor(ch); });
+
+        var id = setInterval(function () {
+            n++;
+            if (n < ticks && running) {
+                run.forEach(function (ch) { ch.textContent = randomFor(ch); });
+                return;
+            }
+            clearInterval(id);
+            live.splice(live.indexOf(id), 1);
+            run.forEach(function (ch) { ch.textContent = ch.getAttribute('data-final'); });
+            done();
+        }, TICK_MS);
+        live.push(id);
+    }
+
+    function flicker() {
+        var first = pickRun();
+        var pending = 1;
+        function done() { if (!--pending) schedule(); }
+
+        churn(first, done);
+
+        if (Math.random() < TWO_RUNS) {
+            /* The second run must not touch the first, or the two would fight
+               over the same letters. */
+            for (var tries = 0; tries < 12; tries++) {
+                var other = pickRun();
+                var clash = other.some(function (ch) { return first.indexOf(ch) !== -1; });
+                if (clash) continue;
+                if (Math.abs(all.indexOf(other[0]) - all.indexOf(first[0])) < 6) continue;
+                pending++;
+                setTimeout(function (r) {
+                    return function () { churn(r, done); };
+                }(other), 120 + Math.random() * 420);
+                break;
+            }
+        }
+    }
+
+    function schedule(delay) {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            if (!running) return;
+            if (!visible || document.hidden) { schedule(); return; }
+            flicker();
+        }, delay === undefined ? GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN) : delay);
+    }
+
+    return {
+        start: function (delay) {
+            if (running) return;
+            running = true;
+            all.forEach(function (ch) {
+                ch.classList.remove('is-void', 'is-scrambling');
+                ch.classList.add('is-set');
+                ch.textContent = ch.getAttribute('data-final');
+            });
+            schedule(delay);
+        },
+        stop: function () {
+            running = false;
+            clearTimeout(timer);
+            live.splice(0).forEach(clearInterval);
+            all.forEach(function (ch) {
+                ch.textContent = ch.getAttribute('data-final');
+            });
+        }
+    };
+};
+
+/* The opening title: the first flicker lands exactly two seconds after the
+   last character of the typewriter, then the intervals go back to chance. */
+(function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var title = document.querySelector('.tp-opening .case-study-title');
+    if (!title) return;
+
+    var idle = window.tpIdleScramble(title);
+    if (!idle) return;
+
+    if (document.documentElement.classList.contains('tp-anim')) {
+        title.addEventListener('tp:typed', function () { idle.start(2000); }, { once: true });
+    } else {
+        setTimeout(function () { idle.start(2000); }, 600);
+    }
+})();
+
+/* The two project names churn only while their head is reduced — that is,
+   while the name is all that is left of the head. Whole, the head is being
+   read: nothing moves in it. */
+(function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.MutationObserver) return;
+
+    document.querySelectorAll('.tp-head').forEach(function (head) {
+        var name = head.querySelector('.tp-project-title');
+        if (!name) return;
+
+        window.tpSplit(name);
+        /* NJÖRD is five letters: the guard set for the opening line would rule
+           it out, and the margin has to shrink with it. */
+        var idle = window.tpIdleScramble(name, { min: 4, edge: 1, gapMin: 5200, gapMax: 9200 });
+        if (!idle) return;
+
+        function sync() {
+            if (head.classList.contains('is-reduced')) idle.start(1200);
+            else idle.stop();
+        }
+
+        new MutationObserver(sync).observe(head, { attributes: true, attributeFilter: ['class'] });
+        sync();
+    });
+})();
+
+/* The media of the first project load straight away instead of waiting to be
+   scrolled into view: their arrival used to change the height of the page while
+   the magnet was moving, which is the other half of the twitching. */
+(function () {
+    var media = document.querySelectorAll('#njord img[loading="lazy"]');
+    [].slice.call(media).forEach(function (img) { img.loading = 'eager'; });
+})();
+
+/* The second line of the opening title sits on the same line as "2026 |" in the
+   rail. The rail is fixed and the title is in the flow, so the offset is taken
+   with the page at the top and applied to the block's margin. */
+(function () {
+    var opening = document.querySelector('.tp-opening');
+    var title = document.querySelector('.tp-opening .case-study-title');
+    var mark = document.querySelector('.tp-rail button[data-target="#not-clean-enough"]');
+    if (!opening || !title || !mark) return;
+
+    function baseline(node) {
+        var s = document.createElement('span');
+        s.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline;';
+        node.appendChild(s);
+        var y = s.getBoundingClientRect().top;
+        node.removeChild(s);
+        return y;
+    }
+
+    function align() {
+        opening.style.marginTop = '';
+        if (window.matchMedia('(max-width: 800px)').matches) return;
+        var base = parseFloat(window.getComputedStyle(opening).marginTop) || 0;
+        var delta = baseline(mark) - (baseline(title) + window.pageYOffset);
+        opening.style.marginTop = Math.round(base + delta) + 'px';
+    }
+
+    align();
+    window.addEventListener('resize', align);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(align);
+    window.addEventListener('load', align);
+})();
+
+/* The metadata sit on the same baselines as the two lines of the project title:
+   Scope and Exhibition on the first, Context and Traces on the second.
+   The offsets are measured, not guessed: a zero-sized inline-block aligned to
+   the baseline reports the exact baseline position of the line it sits on. */
+(function () {
+    var projects = [].slice.call(document.querySelectorAll('.tp-head'));
+    if (!projects.length) return;
+
+    function probe(node, where) {
+        var s = document.createElement('span');
+        s.className = 'tp-probe';
+        s.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline;';
+        node.insertBefore(s, where);
+        return s;
+    }
+
+    /* The three columns of the head are set on the navbar: the metadata start
+       exactly where About and Play start. Measured, so it holds at any width. */
+    function columns() {
+        var base = document.getElementById('case-study');
+        var navLinks = document.querySelectorAll('#navbar a');
+        var about = navLinks[1];
+        var play = navLinks[2];
+        var mobile = window.matchMedia('(max-width: 800px)').matches;
+
+        projects.forEach(function (project) {
+            var meta = project.querySelector('.tp-meta');
+            if (mobile || !base || !about || !play) {
+                project.style.gridTemplateColumns = '';
+                project.style.columnGap = '';
+                if (meta) { meta.style.gridTemplateColumns = ''; meta.style.columnGap = ''; }
+                return;
+            }
+            var left = base.getBoundingClientRect().left;
+            var second = about.getBoundingClientRect().left - left;
+            var third = play.getBoundingClientRect().left - left;
+
+            project.style.columnGap = '0px';
+            project.style.gridTemplateColumns = second + 'px ' + (third - second) + 'px 1fr';
+            if (meta) {
+                meta.style.columnGap = '0px';
+                meta.style.gridTemplateColumns = (third - second) + 'px 1fr';
+            }
+        });
+    }
+
+    function align() {
+        columns();
+        projects.forEach(function (project) {
+            var title = project.querySelector('.tp-project-title');
+            var metas = [].slice.call(project.querySelectorAll('.tp-meta > p'));
+            if (!title || !metas.length) return;
+
+            metas.forEach(function (p) { p.style.top = ''; p.style.position = ''; });
+            [].slice.call(project.querySelectorAll('.tp-probe')).forEach(function (s) {
+                s.parentNode.removeChild(s);
+            });
+
+            if (window.matchMedia('(max-width: 800px)').matches) return;
+
+            /* Two baselines: the name that stays, and the line that leaves. */
+            var sub = project.querySelector('.tp-sub');
+            var baselines = [probe(title, null).getBoundingClientRect().top];
+            if (sub) baselines.push(probe(sub, null).getBoundingClientRect().top);
+
+            metas.forEach(function (p, i) {
+                var label = p.querySelector('.case-study-small');
+                var mark = probe(p, label ? label.nextSibling : p.firstChild);
+                /* Column flow: even index = first row, odd = second row. */
+                var target = baselines[i % 2];
+                if (target === undefined) return;   /* one-line title: nothing to align to */
+                var delta = target - mark.getBoundingClientRect().top;
+                p.style.position = 'relative';
+                p.style.top = Math.round(delta) + 'px';
+            });
+        });
+    }
+
+    align();
+    window.addEventListener('resize', align);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(align);
+    window.addEventListener('load', align);
+})();
+
+/* State change of the sticky heads, driven by the direction of the scroll and
+   not by a position on the page. Going down, the second line and the metadata
+   rise, blur and fade, leaving the name and its rule; going up — from anywhere
+   in the project, not only from next to the head — they come back down. The
+   head keeps its full height in the flow, so nothing below it ever moves. */
+(function () {
+    var heads = [].slice.call(document.querySelectorAll('.tp-project')).map(function (section) {
+        return { section: section, head: section.querySelector('.tp-head'), name: section.querySelector('.tp-project-title') };
+    }).filter(function (h) { return h.head && h.name; });
+    if (!heads.length) return;
+
+    /* How far the departing parts have to travel to clear the top edge, and
+       the band that stays behind: the name between the head's two paddings. */
+    function measure() {
+        heads.forEach(function (h) {
+            var box = window.getComputedStyle(h.head);
+            var top = parseFloat(box.paddingTop);
+            var bottom = parseFloat(box.paddingBottom);
+            /* offsetHeight, not the rendered rect: the name may be scaled down
+               at this moment and its drawn height would lie about the layout.
+               The band that stays is the name at its reduced size, since it
+               shrinks upwards from its ascender. */
+            var scale = parseFloat(box.getPropertyValue('--tp-scale')) || 1;
+            var kept = h.name.offsetHeight * scale + top + bottom;
+            var full = h.head.offsetHeight;
+            h.head.style.setProperty('--tp-kept', Math.round(kept) + 'px');
+            h.head.style.setProperty('--tp-max', Math.round(Math.max(0, full - bottom)) + 'px');
+        });
+        apply();
+    }
+
+    /* A few pixels of hysteresis: a scroll has to mean it before it counts as a
+       change of direction, otherwise the head would flutter on every tremor. */
+    var STEP = 8;
+    /* Right at the anchor the head is always whole: it only reduces once the
+       page has actually moved past it. */
+    var GRACE = 24;
+    var pivot = window.pageYOffset;
+    var down = true;
+
+    function apply() {
+        var mobile = window.matchMedia('(max-width: 800px)').matches;
+        var y = window.pageYOffset;
+        if (y > pivot + STEP) { down = true; pivot = y; }
+        else if (y < pivot - STEP) { down = false; pivot = y; }
+        else if ((down && y < pivot) || (!down && y > pivot)) { pivot = y; }
+
+        heads.forEach(function (h) {
+            if (mobile) { h.head.classList.remove('is-reduced'); return; }
+            var past = -h.section.getBoundingClientRect().top;
+            h.head.classList.toggle('is-reduced', past > GRACE && down);
+        });
+    }
+
+    measure();
+    window.addEventListener('scroll', apply, { passive: true });
+    window.addEventListener('resize', measure);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener('load', measure);
+})();
+
+/* Videos on this page loop on their own, independent of the site-wide sync.
+   A video carrying data-loop-end plays only up to that second and starts over:
+   the tail of the file is never shown. */
+document.querySelectorAll('#case-study video').forEach(function (v) {
+    v.addEventListener('ended', function () { v.currentTime = 0; v.play(); });
+
+    var stop = parseFloat(v.getAttribute('data-loop-end'));
+    if (stop > 0) {
+        v.addEventListener('timeupdate', function () {
+            if (v.currentTime >= stop) v.currentTime = 0;
+        });
+    }
+
+    function start() { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+
+    /* A heavy video does not start with the page: it would take the bandwidth
+       the images need. It starts a screen and a half before it is reached, so
+       by the time it is in view it is already running. */
+    if (v.hasAttribute('data-deferred') && 'IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                io.disconnect();
+                v.preload = 'auto';
+                v.load();
+                start();
+            });
+        }, { rootMargin: '150% 0px' });
+        io.observe(v);
+        return;
+    }
+
+    start();
+});
+
+/* A .tp-composition behaves as one piece: a click anywhere inside it opens the
+   whole composition in the modal, not the single image or video that was hit. */
+document.querySelectorAll('.tp-composition').forEach(function (comp) {
+    comp.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var modal = document.getElementById('modal');
+        var content = modal.querySelector('.modal-content');
+
+        var img = document.getElementById('expandedImg');
+        if (img) img.style.display = 'none';
+        var mv = document.getElementById('expandedVideo');
+        if (mv) { mv.pause(); mv.style.display = 'none'; }
+
+        var old = content.querySelector('.tp-composition-stage');
+        if (old) old.remove();
+
+        /* The clone keeps the width it has on the page: the negative margins
+           and the fixed crop heights are calibrated on that width, so nothing
+           is recomputed. It is then scaled as a whole to fit the viewport. */
+        var w = comp.getBoundingClientRect().width;
+
+        var stage = document.createElement('div');
+        stage.className = 'tp-composition-stage';
+
+        var clone = comp.cloneNode(true);
+        clone.classList.remove('tp-composition', 'clickable');
+        clone.classList.add('tp-composition-expanded');
+        clone.style.width = w + 'px';
+
+        stage.appendChild(clone);
+        content.appendChild(stage);
+
+        /* Measured with the modal already open — inside a display:none parent
+           every box would come back as zero. */
+        stage.style.visibility = 'hidden';
+        modal.style.display = 'flex';
+
+        var h = clone.getBoundingClientRect().height;
+        var k = Math.min((window.innerWidth * 0.88) / w, (window.innerHeight * 0.88) / h);
+
+        clone.style.transform = 'scale(' + k + ')';
+        stage.style.width = (w * k) + 'px';
+        stage.style.height = (h * k) + 'px';
+        stage.style.visibility = '';
+
+        clone.querySelectorAll('video').forEach(function (v) {
+            v.muted = true; v.loop = true; v.playsInline = true;
+            var p = v.play(); if (p && p.catch) p.catch(function () {});
+        });
+    }, true);
+});
+
+/* The clone is thrown away when the modal closes. */
+(function () {
+    var base = window.closeModal;
+    window.closeModal = function () {
+        var c = document.querySelector('.tp-composition-stage');
+        if (c) c.remove();
+        if (typeof base === 'function') base();
+    };
+})();
+</script>
+</body>
+</html>
