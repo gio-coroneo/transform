@@ -199,6 +199,72 @@
         .tp-head + * { margin-top: 30px; }
     }
 
+    /* ---- The same head, on a phone -------------------------------------
+       The desktop block above is the three-column grid. Here the head is a
+       single column, and everything is scaled to what a phone can spare: the
+       band that stays behind is about 55px, which is the price of keeping the
+       name in view for the whole section. */
+    @media screen and (max-width: 800px) {
+        .tp-head {
+            position: sticky;
+            top: 0;
+            z-index: 90;
+            /* 30px clear the navbar, 8px of white above the name. */
+            padding: 38px 0 10px 0;
+            /* Less shrinking than on desktop: the name is already small. */
+            --tp-scale: 0.74;
+            display: block;
+        }
+        /* #content is the full width of the phone with 20px of padding, so the
+           glass reaches the two edges with exactly that much on each side. */
+        .tp-head::before {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            top: 0;
+            height: 100%;
+            left: -20px;
+            right: -20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(4px) saturate(160%);
+            backdrop-filter: blur(4px) saturate(160%);
+            border-bottom: 0.25px solid var(--black);
+            transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tp-head.is-reduced::before { height: var(--tp-kept, 62px); }
+
+        .tp-head > .tp-project-title {
+            transform-origin: left top;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 0;
+            /* The rule belongs to the glass here too, not to the title. */
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+        .tp-head.is-reduced > .tp-project-title { transform: scale(var(--tp-scale)); }
+
+        /* The second line and the metadata leave the same way they do on
+           desktop, over a shorter distance: on a phone 48px would take them
+           off the screen before the blur had anything to happen on. */
+        .tp-head > .tp-sub,
+        .tp-head > .tp-meta {
+            transform: translateY(0);
+            opacity: 1;
+            filter: blur(0);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.18s ease-out, filter 0.2s ease-out;
+        }
+        .tp-head.is-reduced > .tp-sub,
+        .tp-head.is-reduced > .tp-meta {
+            transform: translateY(-24px);
+            opacity: 0;
+            filter: blur(10px);
+            pointer-events: none;
+        }
+        .tp-project { border-top: 0; padding-top: 0; }
+        .tp-head + * { margin-top: 22px; }
+    }
+
     /* Scroll anchoring off: when an image finishes loading the browser shifts
        the scroll position to keep what you are looking at in place. During the
        magnet's own animation the two corrections fight each other, and that is
@@ -570,29 +636,112 @@
            no longer here: without this the opening would sit under the navbar. */
         #case-study { margin-top: 60px; }
         .tp-project-title { font-size: 28px; line-height: 32px; }
-        /* Same move on mobile, where the section is a plain block: the rule
-           goes under the title instead of above the section. */
-        .tp-project { margin-top: 80px; border-top: 0; padding-top: 0; }
-        /* No sticky head on mobile: it would take most of a small screen. */
-        .tp-head { position: static; display: block; }
-        .tp-sub { font-size: 28px; line-height: 32px; margin: 0 0 20px 0; font-family: var(--serif); font-weight: 400; transform: none; clip-path: none; }
-        .tp-project-title { border-bottom: 0.25px solid var(--black); padding-bottom: 20px; }
+        .tp-project { margin-top: 80px; }
+        .tp-sub { font-size: 26px; line-height: 30px; margin: 4px 0 16px 0; font-family: var(--serif); font-weight: 400; transform: none; clip-path: none; }
         .tp-project-line, .tp-meta { grid-template-columns: 1fr; }
-        /* On mobile the opening goes back to normal flow: a full screen of
-           centred text would push everything else too far down. */
-        .tp-opening { max-width: 100%; margin-bottom: 60px; min-height: 0; margin-top: 0; display: block; }
+        /* The opening keeps the whole screen here too: it is the ground the
+           magnet pushes off from, and without it there is nothing to leave. */
+        .tp-opening {
+            max-width: 100%;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0 0 60px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
         /* On mobile the line goes back to wrapping: fitting it would make it tiny. */
-        .tp-opening .case-study-title { font-size: 38px; line-height: 40px; margin-bottom: 28px; white-space: normal; }
-        .tp-opening p { max-width: 100%; }
-        /* No empty band on mobile: the rail would sit on top of the images. */
-        .tp-rail { display: none; }
-        .tp-bridge { max-width: 100%; font-size: 24px; line-height: 29px; margin: 60px 0; }
-        .tp-comment { max-width: 100%; font-size: 26px; line-height: 31px; }
-        .tp-close p { max-width: 100%; font-size: 21px; line-height: 26px; }
-        .tp-ph-row, .tp-pair { grid-template-columns: 1fr; }
+        .tp-opening .case-study-title { font-size: 34px; line-height: 37px; margin-bottom: 24px; white-space: normal; }
+        /* The opening paragraphs are outside .case-study-text, so they would
+           keep the 16px default while every other paragraph on the page reads
+           at 18px. They are set to the same measure here. */
+        .tp-opening p { max-width: 100%; font-size: 18px; line-height: 23px; margin-bottom: 16px; }
+        /* The rail cannot stay on the side of a phone — there is no side. It
+           becomes a strip along the bottom edge, where a thumb reaches it, and
+           the names are always out: without a pointer there is no hover to
+           reveal them, and two bare years would say nothing. */
+        .tp-rail {
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            transform: none;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 20px calc(9px + env(safe-area-inset-bottom));
+            background-color: rgba(255, 255, 255, 0.72);
+            -webkit-backdrop-filter: blur(6px) saturate(160%);
+            backdrop-filter: blur(6px) saturate(160%);
+            border-top: 0.25px solid var(--black);
+        }
+        .tp-rail button {
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+            line-height: 14px;
+            text-align: left;
+        }
+        .tp-rail button:last-child { text-align: right; }
+        .tp-rail .tp-name {
+            max-width: 220px;
+            padding-left: 5px;
+            opacity: 1;
+        }
+        /* The strip covers the last lines of the page: the signature is given
+           the room to clear it. */
+        .tp-sign { padding-bottom: 46px; }
+        .tp-pair { grid-template-columns: 1fr; }
         /* On mobile the text column is the whole module, so the vertical video
            follows it and takes the full width. */
         .tp-portrait { width: 100%; margin-left: 0; }
+
+        /* Captions grow with the body: 11px on a phone is under the size at
+           which a line of grey text stays comfortably readable. */
+        .tp-caption { font-size: 12px; line-height: 15px; margin: 3px 0 14px 0; }
+        .tp-caption-link { margin-left: 5px; }
+        .tp-note { font-size: 16px; line-height: 21px; margin-top: 16px; }
+        .tp-meta p { font-size: 14px; line-height: 18px; }
+
+        /* ---- Media -----------------------------------------------------
+           The grids and the crop heights are written as inline styles on the
+           elements, calibrated on the width of the desktop module. Nothing
+           but !important reaches them from here, and on a phone they have to
+           give way: two technical drawings side by side come out at 170px
+           each, which is no longer a drawing. */
+        .tp-pair { grid-template-columns: 1fr !important; }
+
+        /* The identity block loses its overlay: the video sitting on top of
+           the sheet is positioned with a negative margin measured on the
+           desktop width, and at this size it lands in the wrong place. The
+           pieces are simply stacked instead. */
+        .tp-composition > .tp-crop {
+            width: 100% !important;
+            margin-top: 0 !important;
+            margin-bottom: 10px !important;
+            height: 120px !important;
+        }
+        /* The three animated marks stay on one row — they are read as a set —
+           but at a third of a phone they need to be shorter than they are wide. */
+        .tp-composition .tp-pair {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 6px;
+        }
+        .tp-composition .tp-pair .tp-crop { height: 76px !important; }
+
+        /* The dataset screenshots keep their frame, with less air inside it:
+           16px of padding on a 350px image is a visible waste of width. */
+        .tp-stroke { padding: 5px; }
+    }
+
+    /* Small phones. Below this width the opening title starts to break in
+       places that read badly, and the metadata crowd the name. */
+    @media screen and (max-width: 420px) {
+        .tp-opening .case-study-title { font-size: 29px; line-height: 32px; }
+        .tp-opening p { font-size: 17px; line-height: 22px; }
+        .tp-project-title { font-size: 25px; line-height: 28px; }
+        .tp-sub { font-size: 23px; line-height: 27px; }
     }
     </style>
 </head>
@@ -1107,8 +1256,10 @@
             lastDelta = delta;
             return true;
         };
+        /* The phone is no longer excluded: the opening is a full screen there
+           too, so the magnet has the same two anchors it has on desktop. */
         var usable = function () {
-            return !magnet && !window.matchMedia('(max-width: 800px)').matches;
+            return !magnet;
         };
         /* Downwards: anywhere on the opening screen. */
         var armedDown = function () {
@@ -1764,14 +1915,12 @@ window.tpIdleScramble = function (title, opts) {
     var down = true;
 
     function apply() {
-        var mobile = window.matchMedia('(max-width: 800px)').matches;
         var y = window.pageYOffset;
         if (y > pivot + STEP) { down = true; pivot = y; }
         else if (y < pivot - STEP) { down = false; pivot = y; }
         else if ((down && y < pivot) || (!down && y > pivot)) { pivot = y; }
 
         heads.forEach(function (h) {
-            if (mobile) { h.head.classList.remove('is-reduced'); return; }
             var past = -h.section.getBoundingClientRect().top;
             h.head.classList.toggle('is-reduced', past > GRACE && down);
         });
