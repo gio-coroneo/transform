@@ -805,22 +805,33 @@
            each, which is no longer a drawing. */
         .tp-pair { grid-template-columns: 1fr !important; }
 
-        /* The identity block keeps the overlay it has on desktop: the video on
-           the left half of the sheet, its bottom edge landing just above the
-           bottom of the image. On desktop that is written in pixels — 165px
-           tall, pulled up 180px — measured on a module about a thousand pixels
-           wide. Here the same figures are expressed as proportions of the
-           module, so the arrangement holds at any width: a percentage margin
-           resolves against the width of the container, and the height comes
-           from an aspect ratio instead of a fixed number.
-              165 / 990  ≈ 1:3 of the crop's own width
-              180 / 1000 = 18% of the module */
+        /* The identity block keeps the overlay it has on desktop: the video
+           covering the framed panel in the lower left of the sheet. On desktop
+           that is written in pixels, measured on a module about a thousand
+           wide; here it is written as proportions of the module, so it holds
+           at any width. A percentage margin resolves against the width of the
+           container, and the height comes from an aspect ratio rather than a
+           fixed number.
+
+           The numbers are not estimated: the panel was measured in the file.
+           njord-03-identity-elements is 2400 × 1385, and the framed panel in
+           its lower left corner runs from x 0 to 1197 and from y 1003 to the
+           bottom edge. As fractions of the module — the image is displayed at
+           its full width — that is 49.9% wide, 15.88% tall, and its bottom is
+           the bottom of the image.
+
+           So the crop is pulled up by its own height plus the 10px the image
+           carries below it, which lands its bottom edge exactly on the bottom
+           edge of the image. The 10px is a fixed value in a picture that
+           scales, which is why it has to be written out rather than folded
+           into the percentage. */
         .tp-composition > .tp-crop {
-            /* The inline style on the element says aspect-ratio: auto, so this
-               one has to shout to be heard. */
-            aspect-ratio: 3 / 1 !important;
+            /* The inline style on the element says aspect-ratio: auto and a
+               height in pixels, so these have to shout to be heard. */
+            width: 49.9% !important;
+            aspect-ratio: 1197 / 381 !important;
             height: auto !important;
-            margin-top: -18% !important;
+            margin-top: calc(-10px - 15.88%) !important;
             margin-bottom: 1.5% !important;
         }
         /* The three animated marks keep their row and their proportion too:
@@ -833,6 +844,11 @@
             aspect-ratio: 2 / 1 !important;
             height: auto !important;
         }
+        /* The frame around the crops is drawn by the browser at a fixed 1px,
+           while the rules inside the artwork shrink with the picture: at this
+           size a 2px line in a 2400px file lands well under a third of a
+           pixel. Half a pixel is what puts the two back on the same weight. */
+        .tp-composition .tp-crop { border-width: 0.5px; }
 
         /* The dataset screenshots keep their frame, with less air inside it:
            16px of padding on a 350px image is a visible waste of width. */
