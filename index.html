@@ -854,9 +854,10 @@
             width: 49.9% !important;
             aspect-ratio: 339 / 100 !important;
             height: auto !important;
-            /* The extra 50px are a trial: raising the crop by hand until the
-               foot of the mask sits on the black rule of the drawing. */
-            margin-top: calc(-60px - 14.72%) !important;
+            /* Fifteen pixels of hand correction on top of the calculated
+               position: the percentage lands the crop on the box of the image,
+               and this closes the last of the gap onto the black rule itself. */
+            margin-top: calc(-25px - 14.72%) !important;
             margin-bottom: 1.5% !important;
         }
         /* The three animated marks keep their row and their proportion too:
