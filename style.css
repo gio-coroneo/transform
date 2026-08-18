@@ -708,9 +708,13 @@ a {
     #mobile-blur {
         display: none;
     }
-    /* Sicurezza anti-scroll orizzontale: nessun elemento deve sforare la viewport. */
+    /* Guard against horizontal scrolling: nothing may reach past the viewport.
+       clip, not hidden: an ancestor with overflow hidden becomes the scroll
+       container and switches off every position: sticky inside it, which is
+       what was keeping the project heads from sticking on a phone. clip cuts
+       the overflow without creating a scrollport, so sticky keeps working. */
     html, body {
-        overflow-x: hidden;
+        overflow-x: clip;
         max-width: 100%;
     }
     /* I <br> manuali (usati per controllare il wrapping desktop) vengono
