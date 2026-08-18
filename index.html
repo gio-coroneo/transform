@@ -854,11 +854,20 @@
             width: 49.9% !important;
             aspect-ratio: 339 / 100 !important;
             height: auto !important;
-            /* Fifteen pixels of hand correction on top of the calculated
-               position: the percentage lands the crop on the box of the image,
-               and this closes the last of the gap onto the black rule itself. */
-            margin-top: calc(-25px - 14.72%) !important;
-            margin-bottom: 1.5% !important;
+            /* The crop rises by its own height plus the 10px the image carries
+               below it, which puts its foot on the foot of the drawing. No
+               hand correction: with the image set as a block above, the
+               calculation already lands on the rule.
+
+               The bottom margin gives the flow back exactly what the negative
+               margin took. A negative margin does not only move its element —
+               it removes space, and everything below rises with it. Desktop
+               hides this because the figures cancel: 165 tall, 15 below,
+               pulled up 180. Here 10px are taken beyond the crop's height, so
+               10px come back. Get this wrong and the three marks underneath
+               climb into the drawing. */
+            margin-top: calc(-10px - 14.72%) !important;
+            margin-bottom: 10px !important;
         }
         /* The three animated marks keep their row and their proportion too:
            165px over a third of the module is close to 2:1. */
