@@ -840,6 +840,14 @@
            pulling the crop up by its own height plus the 10px the image carries
            below it. That 10px is the one fixed quantity in a drawing that
            scales, so it stays outside the percentage. */
+        /* An inline image sits on a baseline, and the line box keeps room for
+           the descender underneath it: a few pixels of phantom white between
+           the black rule at the foot of the drawing and the bottom of the box
+           the negative margin is measured against. The crop was landing on the
+           box, correctly, and therefore below the rule. As a block the image
+           has no such tail and the two edges meet. */
+        .tp-composition > img { display: block; }
+
         .tp-composition > .tp-crop {
             /* The inline style on the element says aspect-ratio: auto and a
                height in pixels, so these have to shout to be heard. */
