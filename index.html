@@ -855,7 +855,7 @@
             </div>
 
             <figure class="tp-figure tp-portrait">
-                <video src="assets/images/not-clean-enough/not-clean-enough-08-opening-video.mp4" muted loop playsinline preload="none" data-deferred class="clickable"></video>
+                <video src="assets/images/not-clean-enough/not-clean-enough-08-opening-video.mp4" poster="assets/images/not-clean-enough/not-clean-enough-08-opening-video-poster.webp" muted loop playsinline preload="none" data-deferred class="clickable"></video>
                 <figcaption class="tp-caption">Video — the opening sequence, in four parts.</figcaption>
             </figure>
 
@@ -1808,8 +1808,15 @@ document.querySelectorAll('#case-study video').forEach(function (v) {
                 if (!e.isIntersecting) return;
                 io.disconnect();
                 v.preload = 'auto';
+                /* Play is asked for only once there is something to play.
+                   Calling it straight after load() works in Chromium, which
+                   queues the request, but WebKit rejects it while the media is
+                   still initialising — and on a file this size that window is
+                   wide. The rejection was being swallowed, so the video simply
+                   never started. */
+                v.addEventListener('loadeddata', start, { once: true });
+                v.addEventListener('canplay', start, { once: true });
                 v.load();
-                start();
             });
         }, { rootMargin: '150% 0px' });
         io.observe(v);
