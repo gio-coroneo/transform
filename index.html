@@ -644,13 +644,25 @@
         margin: 14px 0 0 0;
     }
 
-    /* iOS replaces ↗ with its own colour emoji. The character in the markup is
-       followed by U+FE0E, which asks for the text form; this property says the
-       same thing to the browsers that understand it. Between the two the arrow
-       stays a glyph of the page's own typeface everywhere. */
-    #navbar a, .tp-caption-link {
+    /* The arrow is a problem of two halves. First, none of the typefaces used
+       on this page carries U+2197 — not Times Now, not either cut of Neue Haas
+       — so the browser was fetching it from a system font whose metrics do not
+       match, which is what pushed Mail and Portfolio off the line the other
+       two sit on. Favorit does carry it, and Favorit is already loaded.
+       Second, iOS substitutes its own colour emoji for that character: the
+       U+FE0E after it in the markup asks for the text form, and the property
+       below says the same thing to the browsers that read it. */
+    .tp-arrow {
+        font-family: FavoritLight, sans-serif;
         font-variant-emoji: text;
-        text-rendering: optimizeLegibility;
+        /* Its own line box must not stretch the line it sits in. */
+        line-height: 1;
+    }
+    /* Flex items line up by their boxes unless told otherwise, and boxes of
+       different heights put their text at different heights. Baseline is what
+       the four labels actually have in common. */
+    #navbar {
+        align-items: baseline;
     }
 
     /* The link to the source sits in the caption, at the same size: it is a
@@ -813,25 +825,28 @@
            container, and the height comes from an aspect ratio rather than a
            fixed number.
 
-           The numbers are not estimated: the panel was measured in the file.
-           njord-03-identity-elements is 2400 × 1385, and the framed panel in
-           its lower left corner runs from x 0 to 1197 and from y 1003 to the
-           bottom edge. As fractions of the module — the image is displayed at
-           its full width — that is 49.9% wide, 15.88% tall, and its bottom is
-           the bottom of the image.
+           The width comes from the file: njord-03-identity-elements is
+           2400 × 1385 and the frames in its left column run from x 0 to 1197,
+           which is 49.9% of the module.
 
-           So the crop is pulled up by its own height plus the 10px the image
-           carries below it, which lands its bottom edge exactly on the bottom
-           edge of the image. The 10px is a fixed value in a picture that
-           scales, which is why it has to be written out rather than folded
-           into the percentage. */
+           The height comes from the desktop, converted properly. It is written
+           there as 165px, and the module is calc(80vw - 55px): on a laptop
+           1470 wide that is 1121px, so those 165px are 14.7% of the module —
+           not the 16.5% that assuming a round thousand would suggest. Reading
+           the figure against the wrong module is what left the box too tall
+           here while it looked right on the computer.
+
+           The bottom edge is then landed on the bottom edge of the image by
+           pulling the crop up by its own height plus the 10px the image carries
+           below it. That 10px is the one fixed quantity in a drawing that
+           scales, so it stays outside the percentage. */
         .tp-composition > .tp-crop {
             /* The inline style on the element says aspect-ratio: auto and a
                height in pixels, so these have to shout to be heard. */
             width: 49.9% !important;
-            aspect-ratio: 1197 / 381 !important;
+            aspect-ratio: 339 / 100 !important;
             height: auto !important;
-            margin-top: calc(-10px - 15.88%) !important;
+            margin-top: calc(-10px - 14.72%) !important;
             margin-bottom: 1.5% !important;
         }
         /* The three animated marks keep their row and their proportion too:
@@ -885,8 +900,8 @@
         <div id="navbar">
             <a href="assets/docs/NR_Giovanni_Coroneo.pdf" download style="color: var(--techBlue);">NR<span style="display:inline-block;transform:scaleY(-1);position:relative;top:-1.8px;">^</span></a>
             <a href="assets/docs/CV_Giovanni_Coroneo.pdf" download style="color: var(--techBlue);">CV<span style="display:inline-block;transform:scaleY(-1);position:relative;top:-1.8px;">^</span></a>
-            <a href="mailto:coroneo.giovanni.2002@gmail.com" style="color: var(--techBlue);">Mail ↗︎</a>
-            <a href="https://gio-coroneo.github.io/index.html" target="_blank" rel="noopener" style="color: var(--techBlue);">Portfolio ↗︎</a>
+            <a href="mailto:coroneo.giovanni.2002@gmail.com" style="color: var(--techBlue);">Mail <span class="tp-arrow">↗︎</span></a>
+            <a href="https://gio-coroneo.github.io/index.html" target="_blank" rel="noopener" style="color: var(--techBlue);">Portfolio <span class="tp-arrow">↗︎</span></a>
         </div>
 
         <div id="case-study">
@@ -1046,7 +1061,7 @@
                 <h2></h2>
                 <div>
                     <p>Speculative design offers no model for what makes a project of this kind effective, so<br>I built four frameworks, one per dimension. They worked as instruments and failed as a reading: the judgements of 286 visitors became scores, and the scores an average, which removes divergence instead of recording it. The next evaluation area is built against this.</p>
-                    <p class="tp-note">The full material is in the Bachelor’s thesis, written in Italian.<br><a class="tp-caption-link" href="assets/docs/njord-elaborato-di-laurea.pdf" download style="margin-left: 0; white-space: nowrap;">Link to the Bachelor’s thesis ↗︎</a></p>
+                    <p class="tp-note">The full material is in the Bachelor’s thesis, written in Italian.<br><a class="tp-caption-link" href="assets/docs/njord-elaborato-di-laurea.pdf" download style="margin-left: 0; white-space: nowrap;">Link to the Bachelor’s thesis <span class="tp-arrow">↗︎</span></a></p>
                 </div>
             </div>
 
@@ -1086,11 +1101,11 @@
             </div>
 
             <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-02-dataset-actions.webp" alt="The dataset of actions">
-            <p class="tp-caption">Dataset — the actions shown in the videos, timed. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1v5SrpmpmNBWBETa0MyPN3-ibSB_cc-r9Icqz2hju7rI/edit?gid=2052446594#gid=2052446594" target="_blank" rel="noopener">Link to the dataset ↗︎</a></p>
+            <p class="tp-caption">Dataset — the actions shown in the videos, timed. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1v5SrpmpmNBWBETa0MyPN3-ibSB_cc-r9Icqz2hju7rI/edit?gid=2052446594#gid=2052446594" target="_blank" rel="noopener">Link to the dataset <span class="tp-arrow">↗︎</span></a></p>
             <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-03-dataset-products.webp" alt="The dataset of comments">
-            <p class="tp-caption">Dataset — the products shown in the videos and their cost. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1k7qwSBkcbrXUpfycuuPvOPXDxhHODbjMEDrselw5G-g/edit?gid=1685251223#gid=1685251223" target="_blank" rel="noopener">Link to the dataset ↗︎</a></p>
+            <p class="tp-caption">Dataset — the products shown in the videos and their cost. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1k7qwSBkcbrXUpfycuuPvOPXDxhHODbjMEDrselw5G-g/edit?gid=1685251223#gid=1685251223" target="_blank" rel="noopener">Link to the dataset <span class="tp-arrow">↗︎</span></a></p>
             <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-04-dataset-comments.webp" alt="The dataset of comments">
-            <p class="tp-caption">Dataset — the comments, classified by category. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1vdbA58Y9z8BD6j7tGLjQfWcMOy4isOOWxoQdpAXyK6A/edit?gid=1508084869#gid=1508084869" target="_blank" rel="noopener">Link to the dataset ↗︎</a></p>
+            <p class="tp-caption">Dataset — the comments, classified by category. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/1vdbA58Y9z8BD6j7tGLjQfWcMOy4isOOWxoQdpAXyK6A/edit?gid=1508084869#gid=1508084869" target="_blank" rel="noopener">Link to the dataset <span class="tp-arrow">↗︎</span></a></p>
 
             <div class="case-study-text">
                 <h2></h2>
@@ -1101,7 +1116,7 @@
 
 
             <img class="tp-stroke" loading="lazy" onclick="openModal(this)" src="assets/images/not-clean-enough/not-clean-enough-05-dataset-insecurities.webp" alt="The dataset of insecurities">
-            <p class="tp-caption">Dataset — the comments and the insecurity each one names. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/180LgBtwPb8n73WF-U5Hh86VJ2vL678RdlxIiGVJ0B1U/edit?gid=0#gid=0" target="_blank" rel="noopener">Link to the dataset ↗︎</a></p>
+            <p class="tp-caption">Dataset — the comments and the insecurity each one names. <a class="tp-caption-link" href="https://docs.google.com/spreadsheets/d/180LgBtwPb8n73WF-U5Hh86VJ2vL678RdlxIiGVJ0B1U/edit?gid=0#gid=0" target="_blank" rel="noopener">Link to the dataset <span class="tp-arrow">↗︎</span></a></p>
 
             <div class="case-study-text">
                 <h2></h2>
@@ -2188,7 +2203,12 @@ document.querySelectorAll('.tp-composition').forEach(function (comp) {
         stage.className = 'tp-composition-stage';
 
         var clone = comp.cloneNode(true);
-        clone.classList.remove('tp-composition', 'clickable');
+        /* The class stays on: every rule that arranges this block is written
+           for .tp-composition, and stripping it left the clone to fall back on
+           the defaults — which is why the preview came out scrambled while the
+           block in the page was right. Only the affordance is removed; the
+           click handler is not copied, since it was bound to the original. */
+        clone.classList.remove('clickable');
         clone.classList.add('tp-composition-expanded');
         clone.style.width = w + 'px';
 
