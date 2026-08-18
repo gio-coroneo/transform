@@ -607,6 +607,30 @@
         .tp-sign { margin-top: 80px; }
     }
 
+    /* The four steps are a list, not a paragraph: they are read one at a time,
+       and each one is a separate instruction. A list is never justified —
+       stretching four short lines to a common width would open holes in every
+       one of them — so it stays ranged left at any screen size. */
+    .tp-steps {
+        list-style: none;
+        margin: 10px 0 0 0;
+        padding: 0;
+        text-align: left;
+    }
+    .tp-steps li {
+        display: grid;
+        grid-template-columns: 74px 1fr;
+        column-gap: 12px;
+        padding: 3px 0;
+    }
+    .tp-steps span {
+        font-family: NeueHaasGroteskLight;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.75px;
+        padding-top: 7px;
+    }
+
     /* A note closing a text block: same measure as the paragraph above it, one
        step down, so it reads as a reference and not as the argument. */
     .tp-note {
@@ -734,18 +758,44 @@
             text-justify: inter-word;
             -webkit-hyphens: auto;
             hyphens: auto;
-            hyphenate-limit-chars: 6 3 3;
+            /* The gaps come from too few places to break. 5 2 2 lets a word of
+               five letters split with two on each side — the shortest division
+               a typesetter would accept — where 6 3 3 was refusing most of the
+               breaks the column needed. Each extra break point is a gap that
+               does not have to open. */
+            hyphenate-limit-chars: 5 2 2;
+            -webkit-hyphenate-limit-before: 2;
+            -webkit-hyphenate-limit-after: 2;
+            /* A last line left with one short word is the other thing that
+               reads as a hole. */
             text-wrap: pretty;
+            /* Long tokens — a hyphenated name, an address — would otherwise
+               hold a line open on their own. */
+            overflow-wrap: break-word;
         }
-        /* Captions, notes and metadata stay ranged left: they are labels, and
-           a justified label reads as a mistake. */
-        .tp-caption, .tp-note, .tp-meta p, .tp-sign p { text-align: left; }
+        /* Emphasis and bold sit inside the justified flow and must break with
+           it: an inline element that refuses to hyphenate forces the line
+           around it to stretch. */
+        #case-study .case-study-text p em,
+        #case-study .case-study-text p b,
+        .tp-opening p em {
+            -webkit-hyphens: auto;
+            hyphens: auto;
+        }
+        /* Captions, notes, metadata and the list of steps stay ranged left:
+           they are labels and instructions, and justifying a short line is
+           what produces the widest gaps of all. */
+        .tp-caption, .tp-note, .tp-meta p, .tp-steps, .tp-steps li { text-align: left; }
         .tp-sign p { text-align: right; }
 
         .tp-caption { font-size: 12px; line-height: 15px; margin: 3px 0 14px 0; }
         .tp-caption-link { margin-left: 5px; }
         .tp-note { font-size: 16px; line-height: 21px; margin-top: 16px; }
         .tp-meta p { font-size: 14px; line-height: 18px; }
+        /* The label column is dead width on a phone: the number goes above its
+           own instruction instead of beside it. */
+        .tp-steps li { grid-template-columns: 1fr; column-gap: 0; row-gap: 1px; padding: 5px 0; }
+        .tp-steps span { padding-top: 0; }
 
         /* ---- Media -----------------------------------------------------
            The grids and the crop heights are written as inline styles on the
@@ -1076,7 +1126,12 @@
                 <h2></h2>
                 <div>
                     <p>Four steps are printed on the table, in the order they are to be followed.</p>
-                    <p>One. Take a single card.<br>Two. Read the underlined expressions.<br>Three. Highlight the one that names the lack.<br>Four. Post the card under the category matching the colour you used.</p>
+                    <ol class="tp-steps">
+                        <li><span>One</span>Take a single card.</li>
+                        <li><span>Two</span>Read the underlined expressions.</li>
+                        <li><span>Three</span>Highlight the one that names the lack.</li>
+                        <li><span>Four</span>Post the card under the category matching the colour you used.</li>
+                    </ol>
                 </div>
             </div>
 
