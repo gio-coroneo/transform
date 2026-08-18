@@ -16,6 +16,15 @@
             if (sessionStorage.getItem('tp-opening-seen')) return;
         } catch (e) { return; }
         document.documentElement.className += ' tp-anim';
+
+        /* Safety net. While the flag is on, the opening title is hidden and it
+           is the script at the foot of the page that reveals it: any error
+           down there would leave the page looking empty. After five seconds
+           the flag comes off no matter what — the animation has long finished
+           by then, so in normal conditions this does nothing at all. */
+        setTimeout(function () {
+            document.documentElement.classList.remove('tp-anim');
+        }, 5000);
     })();
     </script>
 
@@ -86,15 +95,24 @@
             -webkit-backdrop-filter: blur(4px) saturate(160%);
             backdrop-filter: blur(4px) saturate(160%);
             border-bottom: 0.25px solid var(--black);
-            /* Served over the network the glass was sampling the wrong layer:
-               the text underneath stayed sharp with a blurred ghost around it,
-               which never happened opening the file locally. Chromium decides
-               what a backdrop-filter samples from how it has split the page
-               into composited layers, and that split changes with the order in
-               which the seven videos and the images arrive. Declaring the
-               layer up front settles the question before the scroll starts. */
-            will-change: backdrop-filter;
-            transform: translateZ(0);
+        }
+        /* Served over the network the glass was sampling the wrong layer: the
+           text underneath stayed sharp with a blurred ghost around it, which
+           never happened opening the file locally. Chromium decides what a
+           backdrop-filter samples from how it has split the page into
+           composited layers, and that split changes with the order in which
+           the seven videos and the images arrive; declaring the layer up front
+           settles the question before the scroll starts.
+
+           It is declared for Chromium only. WebKit supports -webkit-hyphens,
+           so this block skips Safari, where forcing a 3D layer over a sticky
+           element that carries a backdrop-filter makes the media underneath
+           disappear behind the white. */
+        @supports not (-webkit-hyphens: none) {
+            .tp-head::before {
+                will-change: backdrop-filter;
+                transform: translateZ(0);
+            }
         }
         /* The columns are butted against each other (their edges come from the
            navbar), so the breathing room is padding inside each one. */
